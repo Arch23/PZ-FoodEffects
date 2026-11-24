@@ -219,35 +219,110 @@ None.
 
 ## Mod folder structure and loading behavior
 
-## Finding: Not yet researched sufficiently
+## Finding: Static local templates establish the basic mod layout, not its runtime contract
 
 ### Status
-Unverified.
+Partially verified.
 
 ### Findings
-The installed game includes `mods` and `Workshop` directories, but no mod skeleton/loading contract has been verified.
+The installation includes `mods/examplemod/mod.info` and `Workshop/ModTemplate/Contents/mods/ModTemplate/mod.info`. Both use a root `mod.info` containing at least `name` and `id`; the example mod places Lua below `media/lua`. The installation's vanilla Lua is separated into `media/lua/shared`, `client`, and `server`. This is static layout evidence only: it does not prove load order, every accepted `mod.info` key, or dedicated-server behavior for a new mod.
 
 ### Proposed implementation
-Research a local vanilla/example mod or Build 42 loader documentation before creating any runtime files.
+Before gameplay implementation, create a no-gameplay diagnostic mod using the observed layout and validate loading in SP and a dedicated server.
 
 ### Limitations
-No `mod.info`, load-order, or script-placement claims are made.
+The exact installed Build 42 revision remains unknown. `ProjectZomboid64.json` names `zombie/gameStates/MainScreenState` and `projectzomboid.jar`, but contains no revision number.
+
+### Evidence
+- File: `mods/examplemod/mod.info` (`name`, `id`, and optional descriptive fields); `mods/examplemod/media/lua/defines.lua`.
+- File: `Workshop/ModTemplate/Contents/mods/ModTemplate/mod.info`.
+- File: `media/lua/{shared,client,server}` directory layout.
+
+## Follow-up consumption-path research
+
+## Finding: Food, legacy bottle drinking, and fluid drinking have distinct application timing
+
+### Status
+Partially verified; no supported mod post-consumption event found.
+
+### Findings
+`ISEatFoodAction:complete()` calls `IsoPlayer:Eat(item, percentage, useUtensil)`. Its cancellation route calls the same method through `:serverStop()`/`:eat()` with progress-derived percentage. The action reports `EventEating` in `:start()`, before either path, so it cannot establish consumption. `ISDrinkFromBottle` calls its own `:drink()` in `:complete()` and cancellation; it changes thirst and fluid amount itself. `ISDrinkFluidAction` calls `IsoPlayer:DrinkFluid()` repeatedly from `:updateEat()`; on a server it is driven at the `drinkFluid` animation event, and it records a consumed ratio. Therefore a completed action is not a universal post-consumption boundary.
+
+### Evidence
+- File: `media/lua/shared/TimedActions/ISEatFoodAction.lua:98-101, 128-140, 151-153, 174-182, 246-259`.
+- File: `media/lua/shared/TimedActions/ISDrinkFromBottle.lua:35-39, 52-89, 92-95`.
+- File: `media/lua/shared/TimedActions/ISDrinkFluidAction.lua:22-37, 91-103, 113-123`.
+
+### Design implications
+Do not hook `EventEating`; it is an animation/reporting signal. Do not replace these vanilla actions or `IsoPlayer:Eat` on the basis of inspection alone. A future diagnostic must prove the authoritative engine-side observation point and measure actual deltas for each path.
+
+## Temporary effect targets and time
+
+## Finding: Read access to carrying capacity and direct endurance mutation are visible, but no safe temporary modifier contract is established
+
+### Status
+Partially verified.
+
+### Findings
+Vanilla reads `player:getMaxWeight()` in server XP code and exposes endurance through `player:getStats():get(CharacterStat.ENDURANCE)`; shared foraging code writes it with `:set(CharacterStat.ENDURANCE, value)`. These demonstrate availability, not a reversible modifier layer, an endurance-recovery-rate API, or multiplayer-safe synchronization for FoodEffects. `getGameTime():getWorldAgeHours()` is used by vanilla shared and server systems as world-relative time.
+
+### Evidence
+- File: `media/lua/server/XpSystem/XpUpdate.lua:16,33,72`.
+- File: `media/lua/shared/Foraging/forageSystem.lua:1812,2202-2205`.
+- File: `media/lua/shared/Farming/TimedActions/ISPlowAction.lua:160`; `media/lua/shared/Foraging/forageSystem.lua:874-875`.
+
+### Recommendation
+Use world-age hours for effect expiry if the diagnostic proves server consistency and player state persistence. Do not select carrying-capacity or endurance-recovery implementation until a reversible, server-authoritative surface is demonstrated. Directly topping up endurance is a transient state write, not evidence of a sustainable recovery-rate effect.
+
+## Architecture proposal (conditional; no gameplay implementation approved)
+
+### Preconditions
+This architecture may proceed only after a diagnostic proves (1) one authoritative consumption observation point for every supported path, (2) player-record persistence and explicit client transport, (3) a reversible stat target, and (4) a minimal presentation route. If any precondition fails, retain nutrition-only diagnostics and revise the design for review.
+
+### Proposed modules
+- `shared/FoodEffects_Definitions.lua`: effect definitions, numeric validation, configurable duration caps, nutrient-to-effect mapping, and opt-in third-party compatibility definitions. No vanilla item-ID catalog.
+- `server/FoodEffects_Consumption.lua`: the later-verified authoritative hook, live nutrition snapshot/delta calculation, idempotency guard, and rejection logging.
+- `server/FoodEffects_State.lua`: versioned player record migration, expiry, additive-duration stacking, bounded variety history, and stat-target application/removal.
+- `server/FoodEffects_Network.lua`: explicit display projection sent only after authoritative state changes and on join/reconnect.
+- `client/FoodEffects_Presentation.lua`: notifications and the smallest approved display; never calculates gameplay authority.
+- `shared/FoodEffects_Validation.lua`: finite-number checks, schema migration, cap enforcement, malformed-data recovery, and safe no-op behavior.
+
+### Authoritative data model
+Store one namespaced record per player, conceptually:
+
+`{ version = 1, effects = { protein = { expiresAt = worldHours, strength = fixedOrDefined } }, variety = { entries = { { at = worldHours, categories = { protein = true, carbohydrate = true } } } }, processed = { token = worldHours } }`.
+
+`expiresAt` is absolute world time. On a new contribution, server logic calculates `remaining = max(0, expiresAt - now)`, then `expiresAt = now + min(capHours, remaining + contributionHours)`. Strength is either constant per effect definition or omitted; it never grows through stacking. `processed` must be bounded and keyed only by a proven stable consumption transaction/item-delta identity. It must not rely on an item ID after the item can be destroyed.
+
+### Nutrients, quality, and variety
+Read live calories, carbohydrates, lipids, and proteins from the consumed object immediately around the verified consumption point. Calculate contribution from an observed delta or an observed engine fraction, not the requested percentage. Treat absent, non-finite, negative, or incompatible values as zero and skip safely. Base effects use final food nutrition, so they can work without provenance. `Spice = true` and verified tag semantics are candidates for meal-quality signals, but not a universal taxonomy. Cooking level may be captured as an input only after the supported skill/read path and evolved-meal provenance are proven. No formula is proposed yet.
+
+For variety, record a compact, time-stamped set of nutrition-derived categories only after a successful authoritative consumption. Prune entries outside an undecided window on each mutation/load. This is third-party friendly but cannot distinguish foods with identical macro profiles; ingredient-category variety remains deferred until provenance is proven.
+
+### Multiplayer, persistence, and failure behavior
+In SP, the authoritative path and state manager run locally. In MP, the server alone validates consumption, mutates persistent state, expires effects, and applies/removes verified modifiers. The client receives a display-safe projection (effect key, expiry, fixed tier if approved) and may request a resync on login; it never submits nutrition or duration claims. Save/load and reconnect recompute remaining duration from `expiresAt`; offline world-time passage therefore expires effects naturally. Unknown versions, malformed records, missing definitions, and removal/reinstallation must result in validation, pruning, or safe no-op—not permanent base-stat edits. The exact player-data persistence and transport calls are still unverified and must be selected only after diagnostics.
+
+### Presentation
+Native custom moodles remain unverified. First test registration, icon, and dynamic tooltip capabilities. If unsupported, request approval for a minimal client panel or tooltip plus server-triggered notifications; it should show effect name, source/change, and remaining duration. Do not build a large UI.
+
+### Testing gate
+The diagnostic matrix must cover full/partial food, cancelled food, legacy bottle drinking, fluid drinking over time, evolved meals, SP, listen-server MP, dedicated MP, duplicate packets/actions, reconnect, save/load, offline expiry, malformed records, third-party nutrition-only foods, and removal/reinstallation. It must also verify that the selected modifier is applied and removed exactly once.
 
 ### Questions requiring approval
 None.
 
 ## Milestone handoff
 
-**Milestone:** Documentation foundation and first local Build 42 source inspection complete; no gameplay code written.
+**Milestone:** Agreed design direction recorded; second local Build 42 source-inspection pass and conditional architecture proposal complete; no gameplay code written.
 
-**Findings:** Live Lua-readable calories/carbs/lipids/proteins; data-driven evolved recipes and `Spice`/`EvolvedRecipe` properties; queryable item tags; `IsoPlayer:Eat` call path; MP/persistence patterns only. Custom moodles, vitamins, post-eat hook, stat modifiers, and evolved-meal provenance remain unverified.
+**Findings:** Live Lua-readable calories/carbs/lipids/proteins; data-driven evolved recipes and `Spice`/`EvolvedRecipe` properties; queryable item tags; and separate food, bottle-drink, and incremental-fluid consumption paths. World-age hours are used by vanilla as a world-relative time source. Static templates establish the basic mod layout. Custom moodles, a supported post-consumption hook, player persistence/replication, reversible stat modifiers, evolved-meal provenance, and exact Build revision remain unverified.
 
-**Files created or modified:** `AGENTS.md`, `DESIGN.md`, `TECHNICAL.md`, `DECISIONS.md`, `TODO.md`, `CHANGELOG.md`.
+**Files changed:** `DESIGN.md`, `TECHNICAL.md`, `DECISIONS.md`, `TODO.md`, `CHANGELOG.md`.
 
-**Verified functionality:** Static local-source inspection only. No in-game, SP, MP, save/load, or mod-loading test has run.
+**Verified functionality:** Static local-source inspection only, including the shipped Lua actions and templates. No in-game, SP, MP, save/load, or mod-loading test has run.
 
-**Unverified assumptions:** Exact Build revision; vitamins; moodle extension; authoritative consumption interception; effect stat APIs; player-data replication; mod removal behavior.
+**Unverified assumptions:** Exact Build revision; vitamins; native moodle extension; authoritative consumption interception; effect stat APIs; player-data persistence/replication; evolved ingredient provenance; and mod removal behavior.
 
-**Design decisions required:** After feasibility research, approve effect targets/numbers/stacking, variety definition, cooking-quality formula, and fallback presentation if custom moodles are unavailable.
+**Decisions required:** After diagnostics, approve a verified stat target, balance values/caps, variety window/categories/thresholds, any Cooking-quality formula, and the fallback presentation if custom moodles are unavailable. Duration stacking itself is approved.
 
-**Recommended next steps:** Locate the engine/mod loading contract and consumption event surface; run a minimal non-gameplay diagnostic mod in SP then dedicated MP; only then propose architecture.
+**Next steps:** Validate a no-gameplay diagnostic mod's loader contract; identify and test the authoritative consumption surface in SP and dedicated MP; then verify persistence/transport and one reversible target before seeking approval to implement gameplay.
