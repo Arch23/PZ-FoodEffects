@@ -55,6 +55,14 @@ function Diagnostics.playerSnapshot(player)
         " onlineId=" .. tostring(Diagnostics.call(player, "getOnlineID"))
 end
 
+function Diagnostics.nutritionSnapshot(player)
+    local nutrition = Diagnostics.call(player, "getNutrition")
+    return "playerCalories=" .. tostring(Diagnostics.call(nutrition, "getCalories")) ..
+        " playerCarbohydrates=" .. tostring(Diagnostics.call(nutrition, "getCarbohydrates")) ..
+        " playerLipids=" .. tostring(Diagnostics.call(nutrition, "getLipids")) ..
+        " playerProteins=" .. tostring(Diagnostics.call(nutrition, "getProteins"))
+end
+
 function Diagnostics.actionSnapshot(action)
     local item = action and action.item or nil
     local requested = action and action.percentage or nil
@@ -68,7 +76,7 @@ function Diagnostics.actionSnapshot(action)
         jobProgress = Diagnostics.call(action, "getJobDelta")
     end
     return "worldAge=" .. tostring(Diagnostics.worldAgeHours()) .. " " ..
-        Diagnostics.playerSnapshot(action and action.character) .. " requested=" .. tostring(requested) ..
+        Diagnostics.playerSnapshot(action and action.character) .. " " .. Diagnostics.nutritionSnapshot(action and action.character) .. " requested=" .. tostring(requested) ..
         " observedRatio=" .. tostring(consumed) .. " jobProgress=" .. tostring(jobProgress) ..
         " networkProgress=" .. tostring(Diagnostics.call(networkAction, "getProgress")) ..
         " fluidAmount=" .. tostring(Diagnostics.call(fluid, "getAmount")) ..

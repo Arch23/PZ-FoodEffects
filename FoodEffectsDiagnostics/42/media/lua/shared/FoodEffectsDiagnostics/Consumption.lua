@@ -2,6 +2,11 @@
 -- Build 42 timed-action sources, which invoke these methods around consumption.
 -- They preserve each observed method's single return value and never alter inputs.
 require "FoodEffectsDiagnostics/Diagnostics"
+require "FoodEffectsDiagnostics/Config"
+if not FoodEffectsDiagnosticsConfig.consumption then
+    FoodEffectsDiagnostics.log("experiment=consumption enabled=false")
+    return
+end
 require "TimedActions/ISEatFoodAction"
 require "TimedActions/ISDrinkFromBottle"
 require "TimedActions/ISDrinkFluidAction"
@@ -55,13 +60,22 @@ local function installWrapper(actionClass, methodName, hookName)
         state.stack[state.depth] = invocation
         local ok, extra = pcall(argumentSnapshot, hookName, ...)
         if not ok then extra = " argumentSnapshot=error" end
-        logSnapshot(self, hookName, "before", invocation, state, parent, extra)
+        local fluid = hookName == "ISDrinkFluidAction.updateEat" and self.fluidContainer or nil
+        local beforeAmount = Diagnostics.call(fluid, "getAmount")
+        local beforeRatio = Diagnostics.call(fluid, "getFilledRatio")
+        local beforeOk, beforeSnapshot = true, nil
+        if fluid then beforeOk, beforeSnapshot = pcall(Diagnostics.actionSnapshot, self) end
+        if not fluid then logSnapshot(self, hookName, "before", invocation, state, parent, extra) end
         local result = original(self, ...)
-        logSnapshot(self, hookName, "after", invocation, state, parent, extra, tostring(result))
+        local afterAmount = Diagnostics.call(fluid, "getAmount")
+        local afterRatio = Diagnostics.call(fluid, "getFilledRatio")
+        local changed = not fluid or beforeAmount == nil or afterAmount == nil or beforeRatio == nil or afterRatio == nil or beforeAmount ~= afterAmount or beforeRatio ~= afterRatio
+        if fluid and changed then
+            Diagnostics.log("hook=" .. hookName .. " phase=before-saved invocation=" .. invocation .. " action=" .. state.id .. extra .. " " .. (beforeOk and beforeSnapshot or "snapshot-error"))
+        end
+        if changed then logSnapshot(self, hookName, "after", invocation, state, parent, extra, tostring(result)) end
         state.stack[state.depth] = nil
         state.depth = state.depth - 1
-        local recordOk = pcall(Diagnostics.touchTestRecord, self and self.character, hookName)
-        if not recordOk then Diagnostics.log("record-error hook=" .. hookName) end
         return result
     end
     Diagnostics.log("wrapper hook=" .. hookName .. " installed=true")
@@ -78,8 +92,6 @@ installWrapper(ISDrinkFromBottle, "drink", "ISDrinkFromBottle.drink")
 installWrapper(ISDrinkFromBottle, "stop", "ISDrinkFromBottle.stop")
 
 -- Fluids call updateEat incrementally and again from complete; server animation events can call it too.
-installWrapper(ISDrinkFluidAction, "animEvent", "ISDrinkFluidAction.animEvent")
-installWrapper(ISDrinkFluidAction, "complete", "ISDrinkFluidAction.complete")
 installWrapper(ISDrinkFluidAction, "updateEat", "ISDrinkFluidAction.updateEat")
 
 Diagnostics.log("consumption-wrappers-load=true")

@@ -551,3 +551,73 @@ The human developer ran a locally hosted multiplayer server and client on Build 
 **Decisions required:** Gameplay and architecture gates remain as recorded: FE-008 is proposed; offline expiry FE-009 requires approval; no balance, target, variety taxonomy, or fallback UI has been approved.
 
 **Next steps:** Retest the progress guard on hosted MP, then plan controlled player-nutrition, zero-progress cancellation, and persistence/transport experiments before expanding consumption coverage. Keep production gameplay implementation blocked.
+
+## Milestone 4: separately enabled feasibility candidates (2026-11-26)
+
+### Scope and evidence
+
+All experiment switches in `FoodEffectsDiagnostics/42/media/lua/shared/FoodEffectsDiagnostics/Config.lua` default to `false`. Set only the desired switch to `true` on every applicable installation and restart the game/server. Restore all switches to `false` after testing. Use disposable saves and characters, and record whether debug mode, instant actions, or administrative powers are active. The candidate is untested in-game. Earlier SP and hosted MP tests used Build 42.22.2 revision `3d39148846`; the human reported SP debug mode, but MP debug/admin settings were not established. Previous tested diagnostic versions predate this change; the checkout prior to this work was commit `c806506`, but no exact per-test code hash was captured and the earlier logs cannot be definitively assigned that revision. This candidate is uncommitted; identify the actual tested revision with `git rev-parse HEAD` and record SHA-256 hashes of the diagnostic Lua files as well as any local edits.
+
+### 1. Consumption and player nutrition
+
+`consumption=true` enables the experimental food and bottle wrappers and the narrower fluid `updateEat` wrapper. Shared snapshots now include player nutrition getters from `player:getNutrition()`. Installed `media/lua/shared/TimedActions/ISEatFoodAction.lua:14` references `getCalories()` in a comment; `media/lua/client/XpSystem/ISUI/ISCharacterScreen.lua:117` actively calls `getNutrition():getWeight()`. Local JAR `zombie.characters.BodyDamage.Nutrition` class metadata contains names `getCalories`, `getCarbohydrates`, `getLipids`, `getProteins`; exact signatures, Lua exposure, and server behavior are not established by these names. Values may be nil; a player delta can be affected by vanilla mechanics, clamping, timing, or replication and must not automatically be considered authoritative contribution.
+
+Food `complete` directly calls `Eat` and cancellation `serverStop` delegates to `eat` (`ISEatFoodAction.lua:141-152,173-175,193-199`). Their wrappers are candidate boundaries, not unique production transactions: `serverStop` and `eat` nest. Legacy bottle `drink` is the mutation candidate (`ISDrinkFromBottle.lua:70-109`). Fluid `updateEat` is the narrowest Lua boundary located in this pass (`ISDrinkFluidAction.lua:104-120`); underlying Java may perform other paths. Its unchanged snapshots are suppressed only when both amount and ratio were available and unchanged; missing measurements are logged. Fluid pre-state is captured before the call and printed as `phase=before-saved` after the original call; if the original throws, no saved pre-state is printed. No automatic zero substitution for NaN or normalized production contributions exists. Food wrapper result is the Lua method's return, not the inner Java `Eat` result.
+
+**Procedure:** Enable only `consumption`, restart, use a disposable player and ordinary food with known starting values. Eat one quarter, then half of the same item, then the remainder; repeat with immediate and later cancellation. Compare paired item and player fields, requested fraction, invocation/action IDs, item presence and `result`; retain before and after lines and separately record your actions. Repeat on hosted MP with server and client logs, then standalone dedicated MP. Success means the candidate logs comparable fields and return/control behavior remains unchanged in the specific case; it does not prove authority. Stop if there are Lua errors, missing hooks, unexplained changes, or interference with vanilla behavior. Finish with `consumption=false` and restart. The previously observed server `getJobDelta` error needs an explicit hosted MP retest.
+
+### 2. Carrying-capacity preflight — mutation blocked
+
+Local class metadata inspection previously found `IsoPlayer.getMaxWeight(): float`, `getMaxWeightDelta(): float`, and `setMaxWeightDelta(float): void`; class signatures alone do not establish Lua exposure. `capacity=true` exposes `FoodEffectsDiagnostics.inspectCapacity(getPlayer())` for a Lua debug evaluator. It logs `[FoodEffectsDiagnostics] experiment=capacity` with player, effective max weight and delta, without a setter. Run only with a disposable character. If values are nil or errors occur, record failure; disable and restart afterward.
+
+No mutation or restoration code has been supplied: safe restoration across save/load, unexpected termination, concurrent writers, and mod removal is not demonstrated. Therefore there is no safe test value, no setter-based runtime test or cleanup guarantee yet. Investigate the setter, persistence and ownership before proposing a controlled reversible mutation protocol; stop rather than leave a changed value on a save. MaxWeightDelta is not approved as a production effect.
+
+### 3. Moodle preflight — registration blocked
+
+Local JAR class metadata reports `zombie.scripting.objects.MoodleType.register(String): MoodleType`, `register(boolean,String): MoodleType`, `registerBase(String): MoodleType`, and `get(ResourceLocation): MoodleType`; visibility, Lua exposure and registration timing are not established. `moodle=true` exposes `FoodEffectsDiagnostics.inspectMoodle()` in a Lua debug evaluator, logging `[FoodEffectsDiagnostics] experiment=moodle phase=inspect`. A non-nil registration member alone is not proof it can safely be called. Disable and restart after the check. No native type, level, icon, tooltip or duration is registered or controlled; source and timing evidence is insufficient for a safe, meaningful synthetic native registration test. No external framework was added or evaluated. The exact availability and entry point of a Lua debug evaluator in this installation remain to be confirmed by the human; these preflights cannot be claimed executed until then.
+
+### 4. Persistence and synthetic transport
+
+Enable only `persistenceTransport` on server and client and restart. For SP, invoke `FoodEffectsDiagnostics.probeSinglePlayerRecord(getPlayer())` from a Lua debug evaluator, save and quit, reload the same character and invoke again. Compare `experiment=persistence` `previousCount` and `count`; a second consecutive value is evidence only for that character/save path. For MP invoke `FoodEffectsDiagnostics.requestTransportProbe()` from the connected client's evaluator. The server handles the named request using the player supplied by `OnClientCommand`, increments a bounded synthetic namespaced record on that player, and sends the server-created count and world age only to that player via `sendServerCommand`. The client logs `experiment=transport phase=client` with both clocks. Local vanilla examples: `media/lua/shared/Util/LuaNet.lua:123,260-263`, `media/lua/server/ClientCommands.lua:1357`, `media/lua/client/ServerCommands.lua:218`, and `media/lua/shared/BuildingObjects/TimedActions/ISMultiStageBuild.lua:169`.
+
+Compare the server `previousCount` and client count with reconnect, server restart, and a second disposable character, each separately. Repeat on standalone dedicated MP. A received matching server payload establishes only transport of synthetic data, not client trust, gameplay authority, or automatic mod-data synchronization. Stop on Lua errors, missing/misrouted response, or unexpected character crossover. Restore configuration and restart; removal/reinstallation and malformed records need separate disposable-save tests. No client nutrient or duration claim is accepted. Because the evaluator entry point has not been verified, command availability and this entire transport procedure remain experimental.
+
+### Privacy review
+
+`git ls-files diagnostic-logs` shows the four previous raw logs are already tracked at `c806506`. Static pattern review found usernames, network-address-like strings, machine-specific paths and Steam-ID references across them; the hosted server log also contains credential-related words, but the presence of an actual secret has not been established. Subsequent privacy cleanup retained hash-verified raw copies in Git-ignored `diagnostic-logs-private/` and replaced the tracked working copies with diagnostic-only lines, redacted usernames, and placeholders preserving line numbers. Non-diagnostic evidence such as stack traces is available in the local private copies, not those extracts. This is a conservative filter, not a guarantee of anonymity; review before sharing. Commit `c806506` and any copies of its history still contain unsanitized logs. No history was rewritten and no additional logs were committed.
+
+### Milestone 4 handoff
+
+**Milestone:** Partial: consumption and transport candidate instrumentation plus capacity and moodle read-only preflights prepared. No in-game Milestone 4 experiment was run by Codex.
+
+**Findings:** Existing SP/hosted MP item observations remain valid for their tested revisions. Candidate nutrition access is source/class-name supported but not verified at runtime. Capacity mutation is stopped pending safe restoration; native moodle registration remains blocked on exposure and lifecycle evidence. Transport uses a server-generated synthetic record and requires human runtime verification.
+
+**Files changed:** `FoodEffectsDiagnostics/42/media/lua/shared/FoodEffectsDiagnostics/{Config,Consumption,Diagnostics,Feasibility}.lua`, client/server diagnostic Lua files, `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md`.
+
+**Tests executed:** Read-only local source, JAR-name metadata and Git log/privacy pattern inspection; static `git diff --check`. No Lua compiler was found and no game, dedicated server, stat mutation, moodle registration, persistence, or network probe was executed for this candidate.
+
+**Tests requiring human execution:** Each independently enabled experiment as above, starting with SP food and then hosted MP; identify a functioning debug evaluator before manual probes. Repeat without debug/admin powers where practical and record revision and settings.
+
+**Failed experiments and limitations:** Previous MP `getJobDelta` failure still awaits server retest. Capacity restoration and native registration are unproven, so their requested mutation/visible-moodle experiments are not implemented. Transport, elapsed world-age semantics, class Lua exposure, and contribution authority remain unverified. Debug probes depend on a not-yet-verified evaluator. No normalized contribution or production effect exists.
+
+**Proposed architecture:** FE-008 remains proposed. Prefer observing the narrowest proven mutation boundary and structurally avoiding nested duplicates; local action IDs are diagnostic only. Validate any eventual contribution as finite and non-negative; do not treat NaN as zero or item disappearance as proof of consumption.
+
+**Decisions required:** No new gameplay decision is approved. FE-009 offline expiration remains proposed; review capacity, presentation, nutrition scope and balance only after evidence exists.
+
+**Recommendation:** The first production effect is not yet technically feasible to approve: reliable authoritative contribution, reversible modifier ownership, persistence/transport, and a presentation route remain unproven.
+
+## Log privacy cleanup handoff
+
+**Milestone:** Working copies of the four tracked logs filtered to diagnostic lines with usernames redacted; non-diagnostic lines replaced by placeholders to retain line numbers.
+
+**Findings:** Previous commit `c806506` still contains raw logs. The raw local backups in `diagnostic-logs-private/` were copied and hash-checked before filtering and are excluded through `.gitignore`.
+
+**Changed files:** Four tracked `diagnostic-logs/` files, `.gitignore`, `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md`. Raw private copies were created locally; no history was rewritten.
+
+**Verified functionality:** The private backup paths are ignored, the filtered files have no matches for the configured username, credential-keyword, network address, Steam-ID, or local-user-path patterns, and `git diff --check` passed.
+
+**Unverified assumptions:** Pattern filtering cannot guarantee complete anonymization or identify every sensitive value. The exposure of prior history on any remote has not been determined.
+
+**Decisions required:** Human review of the extracts and of any history-rewriting or remote cleanup plan; neither requires deleting this working repository by default.
+
+**Next steps:** Avoid sharing raw logs or existing history until reviewed; decide whether historical cleanup is required based on remote visibility and exposure.

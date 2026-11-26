@@ -2,6 +2,10 @@
 
 ## Research
 
+- [ ] Milestone 4: run separately enabled consumption/nutrition, capacity read-only, moodle exposure, and synthetic persistence/transport probes in disposable SP and hosted/standalone MP; capture environment, debug/admin settings, and exact diagnostic revision.
+- [ ] Establish a demonstrably safe carrying-capacity restoration and removal lifecycle before introducing any diagnostic setter; otherwise stop the mutation experiment.
+- [ ] Investigate native moodle registration exposure, timing, level, rendering, icons, and dynamic tooltips; do not register an unverified type in the candidate.
+- [ ] Review the redacted `diagnostic-logs/` working copies before sharing and decide how to handle unsanitized logs already present in Git history. Raw copies remain locally in ignored `diagnostic-logs-private/`; do not commit them or additional unsanitized logs.
 - [x] Establish local-install evidence for item nutrition, evolved recipes, tags, and eating action.
 - [x] Run the isolated `FoodEffectsDiagnostics` mod in SP and hosted MP and capture initial food and fluid observations. A standalone dedicated server and comprehensive coverage remain untested.
 - [ ] Identify and prove a server-authoritative post-consumption hook that covers food, partial food consumption, fluid drinking, and evolved meals in SP and dedicated MP. Do not use `EventEating` or these diagnostic wrappers as a production interception point without that evidence.

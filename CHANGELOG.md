@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Replaced tracked diagnostic log working copies with diagnostic-only, name-redacted extracts; original local copies are retained in the Git-ignored `diagnostic-logs-private/` directory. Earlier commits still contain the unsanitized files.
+- Added separately disabled diagnostic experiment switches, player-nutrition snapshots, reduced unchanged fluid logging, synthetic persistence/transport probes, and read-only capacity/moodle preflight; runtime validation remains pending. Capacity mutation and moodle registration remain blocked pending safety and API evidence.
 - Added project documentation and initial local Build 42 research records.
 - Recorded approved temporary-effect scope, per-effect additive duration stacking with configurable caps, dietary-variety direction, Cooking-quality goal, and deferrals.
 - Extended local Build 42 research and added a conditional, non-implementation architecture proposal.
