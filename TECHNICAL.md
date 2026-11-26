@@ -606,6 +606,46 @@ Compare the server `previousCount` and client count with reconnect, server resta
 
 **Recommendation:** The first production effect is not yet technically feasible to approve: reliable authoritative contribution, reversible modifier ownership, persistence/transport, and a presentation route remain unproven.
 
+## Milestone 4 SP nutrition observation (2026-11-26)
+
+**Milestone:** Human-run SP consumption probe captured player and item nutrition around repeated portions, removal, and two interruptions.
+
+**Environment and revision:** Build 42.22.2 `3d39148846`; repository `82b6ffc` with local configuration changed to `consumption=true` and the other three flags false. The installed diagnostic directory is a junction to this repository. Debug mode, instant-action options, and administrator settings for this specific run were not established. Raw source evidence was copied to Git-ignored `diagnostic-logs-private/2026-11-26-1048-singleplayer/console.txt`; it contains player identity and should not be committed or shared unsanitized.
+
+**Findings:** At log lines 834-839, the same `Base.BeefJerky` item was consumed as quarter, half, remainder. Immediately surrounding each `complete` wrapper, the player's calorie values increased by 102.5, 205, and 102.5 respectively; the first two correspond to the decreases in the item, and the final increase equals the finite pre-removal remainder, while post-removal item fields were NaN. Player carbohydrate/lipid/protein changes in these examples likewise match the corresponding finite item changes to floating-point precision. Between actions player nutrition values also changed, so compare each immediate before/after pair, not separate action timestamps.
+
+At lines 840-847, the user attempted an immediate and a later cancellation. Both entered `serverStop` and nested `eat`, with observed progress/argument fractions approximately 0.07931 and 0.38966; both produced player and item changes. The early attempt therefore does not establish a zero-consumption cancellation. `serverStop` and `eat` bracket the same mutation, not two independent contributions. The Lua `complete` return was true; it is not the inner Java `Eat` return. These are observations for this SP sequence, not evidence that item deltas always equal player nutrition or that MP authority matches SP.
+
+**Changed files:** `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md`; private raw log copy created, no gameplay or diagnostic code changed. User's existing `Config.lua` edit remains intact.
+
+**Verified functionality:** In this SP run player nutrition getters returned values, correlation and progress fields appeared, and no matching diagnostic `snapshot-error`, `record-error`, or prior `getJobDelta` error was found in the captured console log. The log copy was hash-checked against its source.
+
+**Unverified assumptions / failed experiments:** Zero-progress cancellation was not achieved. Other food properties, clamping, removal for non-consumption, debug-mode effects, multiplayer nutrition authority and synchronization, and the guarded getter on the server remain unverified. No production transaction identity or normalization algorithm is established.
+
+**Decisions required:** None; FE-007 continues to block production gameplay implementation.
+
+**Next steps:** Run the same controlled actions on hosted MP and inspect both server and client logs, including the guarded progress lookup; then separately examine cancellation without a mutation and nutrition clamping. Record debug/admin settings and preserve raw logs privately.
+
+## Milestone 4 hosted MP nutrition observation (2026-11-26)
+
+**Milestone:** Human-run hosted MP consumption probe compared server player nutrition and item snapshots and retested the guarded progress lookup.
+
+**Environment and revision:** Build 42.22.2 `3d39148846`, repository `82b6ffc` with local `Config.lua` modified to `consumption=true` and other switches false. Diagnostic installation is a junction to the repository. Debug and admin settings during this run were not established. Raw server and client logs were copied and hash-checked to Git-ignored `diagnostic-logs-private/2026-11-26-1050-multiplayer/`; they contain identifying information and must not be committed unsanitized.
+
+**Findings:** Server lines 2532-2547 show one beef jerky item consumed as quarter, half, remainder: player calorie gains of 102.5, 205, and approximately 102.5001; corresponding finite item decreases were 102.5 and approximately 205, followed by NaN on removal from a finite pre-state of approximately 102.5. Additional quarter consumption used a second item. Carbohydrate, lipid, and protein changes likewise match observed item decreases in these recorded actions to floating-point precision. This is evidence for the observed hosted server actions, not universal proof of authority or of player-nutrition deltas as contribution under clamping or concurrent effects.
+
+Server lines 2549-2557 show two interrupted actions with `eat` arguments approximately 0.09030 and 0.51401 and matching player/item calorie changes. Both consumed food; a zero-consumption cancellation was not established. Nested `serverStop`/`eat` snapshots are one observed action each. Server progress was `networkProgress` while `jobProgress` was nil. Server and client captures contain no matching diagnostic snapshot/record errors or prior `getJobDelta` exception. The client loaded wrappers but had no `ISEatFoodAction` phase records in this capture, so client-side food nutrition changes and explicit synchronization are not established.
+
+**Changed files:** `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md`; two raw logs copied privately. User's existing diagnostic config change remains intact.
+
+**Verified functionality:** Specific SP and hosted MP tests returned player nutrition readings and the recorded values above; guarded progress logging did not produce the previous matching error in this hosted MP run. This does not establish standalone dedicated-server coverage or all invocation contexts.
+
+**Unverified assumptions / failed experiments:** Zero-progress cancellation was not achieved; item removal unrelated to consumption, player nutrition clamping, other foods, debug/admin effects, replication, duplicates beyond these nested cases, and a production-safe observer remain unproven.
+
+**Decisions required:** None; FE-007 still blocks production gameplay effects.
+
+**Next steps:** Test controlled edge cases and nutrition limits; investigate verified access to a Lua evaluator for the independent persistence, transport, capacity and moodle preflights. Later run standalone dedicated MP and repeat without debug/admin powers as appropriate.
+
 ## Log privacy cleanup handoff
 
 **Milestone:** Working copies of the four tracked logs filtered to diagnostic lines with usernames redacted; non-diagnostic lines replaced by placeholders to retain line numbers.

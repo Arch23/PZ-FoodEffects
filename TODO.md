@@ -3,6 +3,8 @@
 ## Research
 
 - [ ] Milestone 4: run separately enabled consumption/nutrition, capacity read-only, moodle exposure, and synthetic persistence/transport probes in disposable SP and hosted/standalone MP; capture environment, debug/admin settings, and exact diagnostic revision.
+- [x] Compare player and food nutrient snapshots for quarter/half/remainder and interrupted food actions in one SP test; standalone dedicated MP, zero-progress cancellation, and broader food coverage remain open.
+- [x] Compare player and food nutrient snapshots in one hosted MP test and retest the guarded server job-progress lookup; standalone dedicated MP, zero-progress cancellation, and broader coverage remain open.
 - [ ] Establish a demonstrably safe carrying-capacity restoration and removal lifecycle before introducing any diagnostic setter; otherwise stop the mutation experiment.
 - [ ] Investigate native moodle registration exposure, timing, level, rendering, icons, and dynamic tooltips; do not register an unverified type in the candidate.
 - [ ] Review the redacted `diagnostic-logs/` working copies before sharing and decide how to handle unsanitized logs already present in Git history. Raw copies remain locally in ignored `diagnostic-logs-private/`; do not commit them or additional unsanitized logs.
@@ -33,7 +35,7 @@
 - [ ] Verify the diagnostic namespaced record through save/load, reconnect, server restart, client synchronization, malformed-data recovery, and mod removal/reinstallation using disposable saves.
 - [x] Verify corrected diagnostic mod discovery and loading on the hosted server and client; the previous root-only candidate did not appear in the Mods menu.
 - [ ] Extend validation of action correlation, cancellation arguments, fluid snapshots, and record-before logging beyond the observed SP and hosted MP cases. Correlation IDs are process-local, not proven transaction identities.
-- [ ] Retest the guarded job-progress lookup on hosted MP; SP logged progress without the previously observed error, but the server path has not been retested after the fix.
+- [x] Retest the guarded job-progress lookup in SP and hosted MP; available progress was logged and the previously observed error pattern was absent in those captures.
 
 ## Future features
 
