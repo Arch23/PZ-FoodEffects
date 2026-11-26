@@ -3,7 +3,8 @@
 ## Research
 
 - [x] Establish local-install evidence for item nutrition, evolved recipes, tags, and eating action.
-- [ ] Identify and prove a server-authoritative post-consumption hook that covers food, partial food consumption, fluid drinking, and evolved meals in SP and dedicated MP. Do not use `EventEating`, action replacement, or `IsoPlayer:Eat` interception without that evidence.
+- [x] Run the isolated `FoodEffectsDiagnostics` mod in SP and hosted MP and capture initial food and fluid observations. A standalone dedicated server and comprehensive coverage remain untested.
+- [ ] Identify and prove a server-authoritative post-consumption hook that covers food, partial food consumption, fluid drinking, and evolved meals in SP and dedicated MP. Do not use `EventEating` or these diagnostic wrappers as a production interception point without that evidence.
 - [ ] Inspect/decompile Build 42 Java interfaces only as needed to verify vitamins, moodles, stats, item tags, and persistence APIs.
 - [ ] Test whether custom moodle types can be registered; otherwise assess a minimal client UI/notification route with dynamic remaining duration.
 - [ ] Verify evolved-recipe nutrient aggregation and preservation of ingredient provenance.
@@ -19,12 +20,16 @@
 
 ## Testing
 
-- [ ] Create SP and dedicated-server test matrix: partial eating, drinking, evolved meals, reconnect, save/load, expiry, and mod removal/reinstall.
+- [x] Document SP and dedicated-server test matrix: partial eating, drinking, evolved meals, reconnect, save/load, expiry, and mod removal/reinstall.
+- [ ] Complete the test matrix: immediate cancellation without consumption, evolved meals, legacy bottles, standalone dedicated MP, third-party foods, and nutrition actually applied to the player.
 
 ## Compatibility
 
 - [ ] Test nutrition-bearing third-party foods and malformed/missing custom data.
-- [ ] Verify the loader contract in-game with a no-gameplay diagnostic mod before adding runtime modules; static local templates establish only the folder and `mod.info` shape.
+- [ ] Verify the diagnostic namespaced record through save/load, reconnect, server restart, client synchronization, malformed-data recovery, and mod removal/reinstallation using disposable saves.
+- [x] Verify corrected diagnostic mod discovery and loading on the hosted server and client; the previous root-only candidate did not appear in the Mods menu.
+- [ ] Extend validation of action correlation, cancellation arguments, fluid snapshots, and record-before logging beyond the observed SP and hosted MP cases. Correlation IDs are process-local, not proven transaction identities.
+- [ ] Retest the guarded job-progress lookup on hosted MP; SP logged progress without the previously observed error, but the server path has not been retested after the fix.
 
 ## Future features
 
