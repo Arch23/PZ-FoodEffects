@@ -74,6 +74,12 @@ local function installWrapper(actionClass, methodName, hookName)
             Diagnostics.log("hook=" .. hookName .. " phase=before-saved invocation=" .. invocation .. " action=" .. state.id .. extra .. " " .. (beforeOk and beforeSnapshot or "snapshot-error"))
         end
         if changed then logSnapshot(self, hookName, "after", invocation, state, parent, extra, tostring(result)) end
+        -- complete and eat are the two source-evidenced food mutation candidates.
+        -- serverStop only encloses eat during interruption and must not be treated
+        -- as a second candidate observation boundary.
+        if changed and (hookName == "ISEatFoodAction.complete" or hookName == "ISEatFoodAction.eat") then
+            Diagnostics.log("candidate=food-observation-boundary hook=" .. hookName .. " invocation=" .. invocation .. " action=" .. state.id .. " depth=" .. state.depth)
+        end
         state.stack[state.depth] = nil
         state.depth = state.depth - 1
         return result

@@ -27,6 +27,16 @@ function Diagnostics.worldAgeHours()
     return Diagnostics.call(gameTime, "getWorldAgeHours")
 end
 
+-- Bounded synthetic counter; reject unknown schemas and malformed values.
+function Diagnostics.nextProbeCount(record)
+    if type(record) ~= "table" or record.schema ~= 1 then return 0, 1, "missing-or-schema" end
+    local count = record.count
+    if type(count) ~= "number" or count ~= count or count < 0 or count >= 1000000 or count ~= math.floor(count) then
+        return 0, 1, "invalid-count"
+    end
+    return count, count + 1, "valid"
+end
+
 function Diagnostics.itemSnapshot(item)
     if not item then return "item=nil" end
     return table.concat({

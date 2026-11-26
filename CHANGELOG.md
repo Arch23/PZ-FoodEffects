@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Added an independently enabled server capacity diagnostic request guarded by the vanilla debug capability and bound to the requesting player; disconnect cleanup and runtime behavior remain unverified.
+- Recorded vanilla server debug-capability evidence and source-available custom-moodle rendering approaches; server disconnect cleanup and fallback presentation remain unresolved.
+- Documented native moodle icon mapping and registry reset behavior; strengthened the capacity probe to require target readback before claiming scalar ownership.
+- Tightened synthetic counter schema and integer bounds, and recorded native moodle registry, level and tooltip method findings; runtime validation remains pending.
+- Added a post-restoration capacity sample and a diagnostic world context menu for enabled local/SP probes and client transport requests; menu and probes are not yet runtime-tested.
+- Changed the separately enabled capacity diagnostic to hold a bounded test scalar for 120 ticks and attempt restoration only if it has not changed; runtime and cleanup behavior remain unverified.
+- Traced periodic server damage synchronization of effective carrying capacity and inspected player/character save methods; complete load ordering and live multiplayer behavior remain unverified.
+- Documented the vanilla capacity recalculation, its client/god-mode guards, inventory capacity readers and a packet carrying effective max weight; a broad decompilation ran out of memory, leaving the cross-class audit incomplete.
+- Recorded initial Java method-body findings: capacity delta is a trait-related scalar distinct from the max-weight field; food percentage can be adjusted, burnt food contributes one fifth nutrition, and player nutrition setters clamp values. Cross-class capacity lifecycle remains unverified.
+- Downloaded CFR 0.152 as a Git-ignored local research tool and verified that it runs with the game's bundled Java; Java method-body inspection remains to be performed.
+- Added a separately guarded, immediate-restore max-weight-delta diagnostic probe and explicit food-boundary markers for `complete`/`eat`; no gameplay effect or persistent stat change was added.
+- Recorded the Milestone 5 tooling limitation: the bundled runtime has no `javap`/JDK tools and a CFR download could not resolve, so Java method-body findings remain blocked rather than inferred from metadata.
 - Recorded an SP diagnostic test in which observed player macronutrient increases matched item decreases for repeated portions and interruptions; multiplayer authority and broader behavior remain unverified.
 - Recorded matching player/item nutrition changes and a successful guarded-progress retest in a hosted multiplayer session; broader authority and standalone dedicated-server coverage remain unverified.
 - Replaced tracked diagnostic log working copies with diagnostic-only, name-redacted extracts; original local copies are retained in the Git-ignored `diagnostic-logs-private/` directory. Earlier commits still contain the unsanitized files.

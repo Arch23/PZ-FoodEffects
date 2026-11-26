@@ -661,3 +661,189 @@ Server lines 2549-2557 show two interrupted actions with `eat` arguments approxi
 **Decisions required:** Human review of the extracts and of any history-rewriting or remote cleanup plan; neither requires deleting this working repository by default.
 
 **Next steps:** Avoid sharing raw logs or existing history until reviewed; decide whether historical cleanup is required based on remote visibility and exposure.
+
+## Milestone 5: targeted feasibility closure (in progress, 2026-11-26)
+
+**Milestone:** Prepared the isolated capacity and consumption-boundary diagnostics; Java-body inspection is presently blocked by local tooling availability. No production gameplay code was introduced.
+
+**Local-source and tooling findings:** The installed Build 42 Lua reads carrying capacity through `character:getMaxWeight()` in `media/lua/client/Hotbar/ISHotbar.lua:573`, `media/lua/client/ISUI/ISInventoryPage.lua:637`, and `media/lua/server/XpSystem/XpUpdate.lua:33`. These are readers, not writers. A local class-file inventory still confirms `IsoPlayer` declares `getMaxWeight`, `getMaxWeightDelta`, and `setMaxWeightDelta`; it does not prove their bodies, field ownership, recalculation paths, serialization, or synchronization. The game-bundled `jre64\\bin` contains `java.exe` but no `javap.exe`, `jar.exe`, or compiler. No system JDK/decompiler was found. An attempt to retrieve CFR 0.152 for local, tooling-only use failed because `www.benf.org` could not be resolved. Therefore no Java method body, caller, field-ownership, serialization, or network claim is made from metadata alone.
+
+**Diagnostic changes:** `FoodEffectsDiagnosticsConfig.capacityMutation` defaults to `false` and additionally requires `capacity=true`. When both flags are deliberately enabled, `FoodEffectsDiagnostics.probeCapacityMutation(player)` records the baseline delta and effective capacity, calls the source/class-evidenced setter with the separately configured test delta, logs the resulting values, then immediately attempts to restore the baseline and logs the restoration result. It is a disposable-character experiment only; it has no deferred state, automatic persistence test, production ownership claim, or safe-removal guarantee. The capacity preflight remains read-only unless that second flag is enabled. Food instrumentation now writes a `candidate=food-observation-boundary` marker only after a changed `ISEatFoodAction.complete` or `ISEatFoodAction.eat` invocation. It deliberately does not mark the enclosing `serverStop`, avoiding a diagnostic duplicate for its nested `eat` path.
+
+**Moodle, persistence, and transport status:** No local vanilla Lua registration call for `MoodleType` was found by the targeted scan. Native Moodle registration, initialization, rendering, icons, tooltips, and Lua exposure remain unverified; no synthetic moodle is registered. The existing independently guarded SP record and server-originated transport probe remain unchanged and require runtime tests. They continue to reject client-provided nutrition/effect values because the client request has no contribution fields and the server creates the record/count/world-age payload.
+
+**Verified functionality:** Static review of the changed Lua confirms the mutation flag defaults off, the setter is only reached with both capacity flags enabled, and the restoration call uses the captured baseline. The local vanilla scan verifies the cited `getMaxWeight` readers. `git diff --check` is required before handoff; no game runtime, capacity write, moodle registration, persistence, reconnect, dedicated-MP, or Java decompilation test has run in this milestone.
+
+**Unverified assumptions / blockers:** `setMaxWeightDelta` Lua exposure and semantics; its effective-capacity formula; all writers; update/recalculation timing; serialization and MP replication/enforcement; interaction with vanilla/third-party modifiers; restoration after crash/save/reload; nutrition clamping; zero-progress cancellation; third-party foods; and every native moodle lifecycle surface. The diagnostic's immediate restoration is a safety measure for a disposable test, not evidence of production-safe restoration.
+
+**Decisions required:** None yet. Protein-based carrying capacity is not ready to approve as the first production vertical slice because the modifier's implementation and multiplayer lifecycle have not been inspected or runtime-tested. FE-007 remains active.
+
+**Next steps:** Install or make available a local JDK/decompiler and inspect the target bytecode before interpreting the capacity experiment. Then run one consolidated disposable-character procedure: (1) record revision, diagnostic hash, debug/admin settings, and all enabled flags; (2) run capacity inspection followed by one immediate-restore mutation; (3) cause an ordinary vanilla capacity-affecting update and re-inspect; (4) run the existing SP persistence probe, save/load, malformed-record, and removal/reinstall cases; (5) repeat server-owned transport, capacity inspection/mutation, reconnect, restart, and character-separation cases in hosted then standalone dedicated MP; (6) run moodle exposure only, stopping before registration unless Java/lifecycle evidence exists. Keep raw logs private and commit only redacted evidence.
+
+## Java tooling follow-up (2026-11-26)
+
+**Milestone:** Local decompiler available. CFR 0.152 was downloaded to `tools/cfr-0.152.jar` and its version command succeeded using the game's bundled Java. Its SHA-256 is `F686E8F3DED377D7BC87D216A90E9E9512DF4156E75B06C655A16648AE8765B2`. `tools/` is Git-ignored; this tool is not a mod dependency.
+
+**Findings and verified functionality:** The version command ran successfully; no game method bodies have yet been inspected with it. The earlier DNS failure no longer blocks acquiring the tool.
+
+**Changed files:** `.gitignore`, `TODO.md`, `CHANGELOG.md`, and `TECHNICAL.md`; the local untracked tool was downloaded separately.
+
+**Unverified assumptions:** Capacity formula and lifecycle, nutrition clamping, and native moodle lifecycle remain open as listed in the preceding handoff. No runtime experiment was performed.
+
+**Decisions required:** None; FE-007 remains active.
+
+**Next steps:** Inspect capacity method bodies, writers, serialization and network paths first; then consumption/nutrition and moodle lifecycle. Finish diagnostic controls and validation before presenting a consolidated disposable-save test procedure.
+
+## Milestone 5 bytecode inspection handoff (2026-11-26)
+
+**Milestone:** Initial local method-body inspection completed with CFR 0.152 and bundled Java. Source is the installed `projectzomboid.jar`, SHA-256 `3C4A7C5F149D784758C6FB5F8FA85F3A21D572E38BC081400E89035F8120D287`; repository HEAD `f0258205f6f5522dbadc6b1a451ee5a4f2c08133` with existing uncommitted diagnostic changes. Generated inspection output is local and ignored under `tools/decompiled/`.
+
+**Findings:** `zombie/characters/IsoPlayer.class`, field `maxWeightDelta`, starts at 1.0; two constructors assign 1.5, 0.75, 0.9 or 1.25 for STRONG, WEAK, FEEBLE or STOUT respectively. `getMaxWeightDelta` returns the field and `setMaxWeightDelta` directly assigns it. This is a shared trait-related scalar, not a dedicated FoodEffects modifier. `zombie/characters/IsoGameCharacter.class` declares separate integer `maxWeight` and `maxWeightBase` fields initialized to 8; `getMaxWeight` returns the former and `setMaxWeight` assigns it. Thus the delta setter itself does not immediately recalculate `getMaxWeight`. The calculation and other-class writers, save/load, networking and enforcement still require tracing. A setter-based diagnostic that immediately restores the scalar cannot establish its effect after a later recalculation.
+
+`IsoGameCharacter.Eat(InventoryItem,float,boolean)` rejects non-Food items, clamps the requested percentage, adjusts it using base/current hunger where applicable, and can round the remainder to full consumption. It adds live nutrients times the adjusted fraction to player nutrition; burnt food contributes one fifth of those amounts. It invokes the food's `OnEat` callback before full removal or partial `multiplyFoodValues`, so third-party callbacks can complicate snapshots. The server path sends player-stat and food-related packets. This is not proof of complete coverage or synchronization correctness. `zombie/characters/BodyDamage/Nutrition.class` setters clamp calories to [-2200, 3700] and each of carbohydrate, protein and lipid to [-500, 1000]. Player accumulator deltas can therefore understate food contribution at a bound, independent of the burnt-food difference.
+
+**Changed files:** `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md`; generated local inspection output only. No gameplay or diagnostic code changed in this pass.
+
+**Verified functionality:** Static decompilation of the named local classes and methods; no runtime experiment. `IsoPlayer` constructor assignments and direct delta accessor bodies were inspected. No assertion is made that the scanned classes contain all writers or network paths.
+
+**Unverified assumptions / blockers:** Effective-capacity recalculation, external writers, serialization and client/server enforcement; mutation probe timing and Lua exposure; full consumption boundary coverage and callback interference; native moodle lifecycle; persistence and transport tests. Existing food observations remain valid for their tested cases but do not establish a universal normalization rule.
+
+**Decisions required:** None. Protein-based carrying capacity remains unapproved and FE-007 remains active.
+
+**Next steps:** Trace cross-class capacity writers and serialization/network paths, inspect moodle lifecycle, and improve diagnostic controls and record validation before requesting the consolidated runtime tests.
+
+## Capacity calculation investigation (2026-11-26)
+
+**Milestone:** Located the vanilla recalculation and one network packet carrying effective capacity. Investigation is incomplete; no runtime test was run.
+
+**Findings:** In installed `projectzomboid.jar`, `zombie.characters.BodyDamage.BodyDamage.UpdateStrength` calculates `maxWeight = max(0, (int)(maxWeightBase * weightMod) - conditionReducers)` and, for an `IsoPlayer`, assigns `(int)(maxWeight * maxWeightDelta)`. Java integer conversion truncates each indicated stage. `IsoGameCharacter.getWeightMod` selects a multiplier from Strength perk level. The reducers depend on hunger, thirst, sickness, bleeding and injury moodle levels. `BodyDamage.Update` calls `UpdateStrength`, but returns early for living players on a multiplayer client and also returns early for god mode. `IsoGameCharacter`'s update calls `BodyDamage.Update` when character stats are enabled. This establishes execution guards, not complete multiplayer authority or timing.
+
+`zombie.inventory.ItemContainer.getMaxWeight` delegates to its character parent's `getMaxWeight`; `getCapacityWeight` has unlimited-carry and debug ghost-mode exceptions. `zombie.network.packets.character.PlayerDamagePacket.write/parse` transmits and assigns the effective integer max weight alongside body damage. Its send frequency, recipients and complete direction/authority have not been established; `PlayerInventoryPacket` separately reports max weight for an administrative inventory inspection, which is not evidence of normal synchronization. No delta field serialization was found in the inspected `IsoPlayer`/`IsoGameCharacter` source, but a complete save/network audit remains open. Other mods can call the public setter or change related fields, so a saved baseline is not exclusive ownership.
+
+**Changed files:** `TECHNICAL.md`, `TODO.md`, `CHANGELOG.md`; generated decompiler output remains Git-ignored. No game or diagnostic code changed.
+
+**Verified functionality:** Static inspection of the named methods in the local installed jar. A broad CFR pass failed with an out-of-memory error after producing partial output, so searches of that output are not exhaustive. No runtime verification.
+
+**Unverified assumptions / blockers:** Complete writers and serialization, packet trigger/direction and enforcement on all sides, third-party interactions, and behavior across reload/removal. The immediate-restore diagnostic does not hold the delta across an update and therefore cannot measure the recalculated capacity. Moodle lifecycle and diagnostic interface remain open.
+
+**Decisions required:** None; FE-007 remains active. The shared scalar and execution-side differences prevent concluding production safety.
+
+**Next steps:** Trace `PlayerDamagePacket` send/receive and character save/load with targeted decompilation; design a disposable, explicitly enabled delayed restoration experiment with conflict detection before runtime tests. Continue moodle and diagnostic usability investigation.
+
+## Capacity packet and save follow-up (2026-11-26)
+
+**Milestone:** Inspected the normal damage-sync caller and the player/character byte-buffer save methods. Static findings only; no experiment was run.
+
+**Findings:** `zombie.network.NetworkPlayerManager.update` checks a 2,000 ms damage timer on the server and calls each player's `NetworkPlayerAI.syncDamage`. That method requires a fully connected, non-delayed-disconnect connection and sends `PlayerDamage` to the player; `PlayerDamagePacket.write/parse` writes and assigns the effective integer max weight. Other damage-triggered sends also exist. This supports periodic server-to-owning-client propagation of the calculated value, subject to runtime confirmation; it does not show scalar synchronization or prove every enforcement path. A living multiplayer client's `BodyDamage.Update` early return makes the server calculation particularly relevant.
+
+The inspected `IsoPlayer.save/load(ByteBuffer,...)` and `IsoGameCharacter.save/load(ByteBuffer,...)` bodies do not directly serialize `maxWeightDelta`, `maxWeight`, or `maxWeightBase`; they delegate to superclass and component save/load methods, which have not been exhaustively audited. The constructors initialize the scalar based on traits available at their execution time. Do not infer exact values after reload until construction/load ordering and a runtime test are established.
+
+**Changed files:** `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md`. Existing diagnostic files were not changed in this pass.
+
+**Verified functionality:** Local CFR method-body inspection and `git diff --check`; no SP/MP execution or persistence test. The earlier broad decompilation failed with out-of-memory and its output is incomplete.
+
+**Unverified assumptions / blockers:** Complete superclass/component serialization and character creation/load ordering, packet behavior in a live hosted or dedicated session, other writers, and safe modifier ownership. The current immediate-restore setter experiment remains insufficient to observe an update. Moodle lifecycle and usable diagnostic controls are still pending.
+
+**Decisions required:** None; FE-007 remains active.
+
+**Next steps:** Finish targeted load/creation and enforcement tracing, then prepare a guarded delayed mutation/restoration probe and consolidated tests; investigate moodle lifecycle and validation in parallel only as independent work permits.
+
+## Capacity delayed probe preparation (2026-11-26)
+
+**Milestone:** Prepared an explicitly enabled, disposable-character delayed scalar experiment. It is not yet runtime-tested or ready as a consolidated test handoff.
+
+**Findings:** Local `zombie.savefile.ServerPlayerDB.serverLoadNetworkCharacter` constructs `IsoPlayer(IsoCell)` before invoking `load`; that constructor delegates to the descriptor constructor. The full later trait/load initialization path remains unresolved. `ItemContainer.hasRoomFor`-related paths include `canAccept`/`getAvailableWeightCapacity` checks, and `getAvailableWeightCapacity` subtracts occupied weight from character-derived maximum; complete server transfer enforcement remains unverified.
+
+**Changed files:** `Config.lua` changes the experimental scalar default from 5 to 1.25; `Feasibility.lua` holds the explicitly enabled mutation for 120 `OnTick` callbacks, logs effective capacity, and attempts baseline restoration only if the observed scalar has not changed. Client-side initiation is rejected. `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md` updated.
+
+**Verified functionality:** Static inspection only. The `OnTick` event is used in installed `media/lua/server/Foraging/forageServer.lua:502` and `media/lua/client/Chat/ISChat.lua:943`; event timing and this probe are not runtime-verified. `git diff --check` is pending at this handoff.
+
+**Unverified assumptions / blockers:** 120 ticks do not guarantee a body-damage update; actual client/server execution, setter Lua exposure, signal timing, load behavior and enforcement are untested. Equality-based conflict detection cannot detect another writer that writes the same value. Process exit, Lua errors, or removal before restoration can leave the disposable character altered; restoration of effective capacity requires a subsequent vanilla update. Do not use on valued saves. The probe has no GUI or server command and needs further usability work.
+
+**Decisions required:** None; FE-007 remains active.
+
+**Next steps:** Add a post-restoration observation and a source-verified interface, review error/cleanup behavior, finish persistence and moodle investigation, and only then supply consolidated runtime instructions.
+
+## Diagnostic usability follow-up (2026-11-26)
+
+**Milestone:** Added a post-restoration sample and a minimal world context menu for independently enabled probes. This is an untested diagnostic candidate, not a production interface.
+
+**Findings:** Installed `media/lua/client/DebugUIs/AdminContextMenu.lua:20-40,88` demonstrates `OnFillWorldObjectContextMenu`, `getSpecificPlayer`, `context:addOption`, `ISContextMenu:getNew` and `addSubMenu`. The diagnostic menu exposes enabled local capacity and moodle inspections, SP persistence, client transport request, and SP-only capacity mutation. It does not expose server-side capacity mutation; a secured server control path still needs design and verification.
+
+**Changed files:** `FoodEffectsDiagnostics/42/media/lua/shared/FoodEffectsDiagnostics/Feasibility.lua`, `FoodEffectsDiagnostics/42/media/lua/client/FoodEffectsDiagnostics_Client.lua`, `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md`.
+
+**Verified functionality:** Static source comparison only. The capacity experiment now records effective capacity after a second 120-tick interval following a successful restoration call. Neither tick count guarantees a vanilla recalculation. `git diff --check` will be run at handoff. No in-game menu, mutation, persistence, or multiplayer test has been executed.
+
+**Unverified assumptions / blockers:** Menu load and callback behavior, event scheduling, Lua setter access, same-value concurrent writes, interruption and restoration, server-side mutation controls, schema validation, moodle lifecycle and dedicated MP. A crash or shutdown before restoration may leave the disposable character altered. Do not run on valued saves. Existing notes describing the original immediate-restore probe are historical; this entry and the preceding delayed-probe handoff supersede them.
+
+**Decisions required:** None. FE-007 remains active.
+
+**Next steps:** Review malformed-record validation and server-side diagnostic authorization; investigate moodle registration and rendering before assembling a consolidated human test procedure.
+
+## Moodle and synthetic-record investigation (2026-11-26)
+
+**Milestone:** Inspected native moodle method bodies and tightened synthetic counter validation. No runtime test or native registration was performed.
+
+**Findings:** In the installed jar, `zombie.scripting.objects.MoodleType` is annotated `@UsedFromLua` and its public `register(String)` delegates to the registry with a non-default namespace; the boolean overload and `registerBase` are private, correcting the earlier metadata-only description. `zombie.characters.Moodles.Moodles` snapshots registry values into its per-character map in its constructor; a late-registered type is absent from existing maps, and accessors dereference the map result. `Moodle.Update` starts at level zero, uses explicit native-type branches, and its level setter is private. No general custom-level callback was found in that method. `MoodlesUI` similarly snapshots registry values at construction, renders positive levels, and requests translated display and description strings from `Moodles`; those keys are built from the type translation name and level. Icon resolution and registry freeze/timing still need inspection. Annotation and public Java methods alone do not prove a working Lua registration path or custom display. A viable native custom-level route is not yet established; a minimal client display consuming server-owned state is a possible fallback requiring human approval, not a decision.
+
+The synthetic persistence/transport counter formerly accepted unknown schema versions, fractional values, and the upper-bound value that then incremented beyond its bound. Shared `nextProbeCount` now accepts schema 1 and integer counts from 0 through 999999; absent, malformed, unknown-schema or exhausted records restart at 1 and log their status. This is a disposable diagnostic record, not a production migration policy. The server continues to construct its own response and ignores client payload fields.
+
+**Changed files:** shared `Diagnostics.lua` and `Feasibility.lua`, server `FoodEffectsDiagnostics_Server.lua`, `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md`.
+
+**Verified functionality:** Static method-body inspection and validation review only; no Lua runtime, malformed-record, moodle or transport test. `git diff --check` is required at handoff.
+
+**Unverified assumptions / blockers:** Registry initialization and freeze timing, icon lookup, possible source-available extension approaches, dynamic tooltip support, menu and record runtime behavior, secured server capacity controls, and dedicated MP. No custom moodle or fallback UI is implemented.
+
+**Decisions required:** None now. Any fallback presentation requires human approval; FE-007 remains active.
+
+**Next steps:** Inspect moodle texture and registry lifecycle, review the guarded capacity experiment and server-control design, then prepare and verify the consolidated test procedure.
+
+## Moodle texture and probe ownership follow-up (2026-11-26)
+
+**Milestone:** Inspected native icon and registry implementation and strengthened the delayed probe's ownership check. The test suite is not yet ready for human execution.
+
+**Findings:** `zombie.ui.MoodleTextureSet` constructs a private map containing explicit vanilla MoodleType-to-texture mappings; `getTexture` returns its map lookup. `MoodlesUI.render` dereferences the returned texture without a null check. An arbitrary registered type therefore has no evidenced vanilla icon mapping and could fail if rendered. `zombie.scripting.objects.Registry.register` has no freeze check in the inspected body, but inserts before detecting duplicates; `RegistryReset.resetAll` removes non-base entries, and `IngameState` calls it. Exact Lua load and reinitialization timing remains unverified. Together with the private level setter and constructor snapshots, this prevents recommending a standalone native registration experiment on current evidence. A small client display for server-projected state remains a proposal requiring approval.
+
+**Changed files:** `Feasibility.lua` now starts delayed ownership only when the successful setter readback matches the requested target within tolerance; otherwise it logs unconfirmed ownership and does not overwrite an unexpected value. `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md` updated.
+
+**Verified functionality:** Static local bytecode and Lua inspection only. `git diff --check` is required at handoff. No runtime testing was performed.
+
+**Unverified assumptions / blockers:** A failed setter could have partially changed the scalar; process interruption and same-value external writes remain indistinguishable. The delayed probe cannot promise restoration. Server-side mutation control needs a verified admin authorization and disconnect/cleanup design; client-provided values must never be accepted. Moodle registration timing and third-party extension mechanisms remain open. No human test procedure is ready yet.
+
+**Decisions required:** None now; approving any fallback UI remains a human decision, and FE-007 is active.
+
+**Next steps:** Research source-available custom moodle approaches and verified server authorization/cleanup APIs; complete diagnostic safeguards and test instructions before requesting runtime tests.
+
+## Server guard and custom moodle research (2026-11-26)
+
+**Milestone:** Located a vanilla server capability check and reviewed two source-available custom moodle project descriptions. No new server mutation endpoint or presentation was added.
+
+**Findings:** Installed `media/lua/server/ClientCommands.lua:794,1330,1339` checks `player:getRole():hasCapability(Capability.UseDebugContextMenu)` on server command handlers. This is a source-evidenced candidate guard for a diagnostic request, in addition to a server-side configuration switch and server-selected value; it does not by itself address disconnect or cleanup. The inspected `LuaEventManager`/`GameClient` shows `OnDisconnect` triggered on the client; no equivalent server player-disconnect event was established by this targeted search. Absence from a partial search is not proof that no hook exists.
+
+The source-available [Moodles in Lua](https://github.com/molecule31/moodlesinlua) project describes disabling vanilla moodle rendering and drawing a replacement; [Moodle Customization Framework](https://github.com/dreamweavevisuals/MoodleCustomizationFramework) likewise describes custom rendering. Both repositories identify GPL-3.0 licensing. These descriptions support the custom-rendering direction but are not a code-level compatibility audit or proof of compatibility with installed 42.22.2. No code or dependency was copied. A possible minimal alternative is a separate small client indicator and tooltip fed by server-projected effect state, leaving the native moodle HUD intact; its visual design and use remain subject to human approval.
+
+**Changed files:** `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md`; no diagnostic code changed.
+
+**Verified functionality:** Static vanilla source and public repository descriptions only. No server authorization, disconnect, or presentation runtime test was performed. `git diff --check` is required at handoff.
+
+**Unverified assumptions / blockers:** Server disconnect lifecycle, cleanup after process termination, capability behavior in hosted/dedicated MP, and compatibility of third-party renderers. A server mutation control must not accept client-provided values or target another character and needs explicit server enablement. The diagnostic experiment can be run only on disposable characters; this is not a production restoration guarantee.
+
+**Decisions required:** Human approval is required before adopting a fallback presentation. FE-007 remains active.
+
+**Next steps:** Trace server disconnect and player lifetime in Java, implement and statically review an independently guarded server probe if its cleanup behavior can be made explicit, and prepare one consolidated test procedure with exact revision, hashes and configuration.
+
+## Guarded server capacity probe (2026-11-26)
+
+**Milestone:** Added a separately enabled, capability-guarded server diagnostic request for the requesting disposable character. The human indicated dependency mods may be acceptable; no particular dependency or presentation is selected or approved.
+
+**Findings:** Installed `zombie.network.GameServer.disconnect` calls `ServerPlayerDB.serverUpdateNetworkCharacter` before `disconnectPlayer`; `disconnectPlayer` removes the player from server maps and world. A later tick-based restoration is not guaranteed to precede this save/removal. The diagnostic therefore must not be used on valued characters or treated as evidence of a production lifecycle.
+
+**Changed files:** `Config.lua` adds `capacityMutationServer=false`; server handler requires `capacity`, `capacityMutation`, and `capacityMutationServer`, plus the vanilla `Capability.UseDebugContextMenu` check. It takes the player from the server command event, ignores request data, and uses the server's configured scalar. The client menu sends an empty request when its matching switches are enabled. `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md` updated. No gameplay or dependency mod was added.
+
+**Verified functionality:** Static inspection and `git diff --check` only. No server, client, authorization, disconnect or restoration runtime test. HEAD `f0258205f6f5522dbadc6b1a451ee5a4f2c08133`, with uncommitted diagnostic edits. Diagnostic SHA-256: client `9C7049246A8D5CEAB666FDA9AD56C05DDFF7242493E04A9B53690D9A5811AA0C`; server `B185495F3583938E4CBCF4453B8AA03C18743493E08A9F4AEC823E2C7A89DB15`; Config `B2038A0CFFC2E52859C5B099758A370E09639F21C8CD042012BCB9962978D532`; Consumption `EF556C235DD7FC0E69AB553056142F996D6C25501921FE67FE979BE6B9AC9BF4`; Diagnostics `44C2196F61D234C5B0A1B5C8342FDE5B39AE74A17F2761516AF1207946EC820F`; Feasibility `5C7B79C7386CBA3222472421AABD754159442A7D318C70954D189F0A961E11D9`; both mod.info files `E9976EFFEDF0EA4C9DAFFA687F100FA5A2674E1725209E64F13906E0A074EAB1`.
+
+**Unverified assumptions / blockers:** Server `OnTick` scheduling, role/capability availability, UI callback, setter access, targeted packet timing, interruption, disconnect, restart, and same-value concurrent writes. Server saves can occur during the probe. One global active experiment per Lua process is permitted. This remains diagnostic-only and restoration is not guaranteed.
+
+**Decisions required:** Evaluate prospective moodle dependencies for Build 42.22.2, SP/MP, lifecycle, license and maintenance before selecting one; the user's openness is not a choice of framework. FE-007 remains active.
+
+**Next steps:** Review the entire candidate for fault handling and prepare a consolidated disposable-save procedure including disabled-by-default switches, admin/debug settings, server and client logs, persistence, malformed data, and removal/reinstallation.
