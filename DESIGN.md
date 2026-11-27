@@ -17,6 +17,10 @@ Make cooking immediately useful for survival instead of relying exclusively on o
 
 Food preferences, food fatigue, freshness bonuses, overeating, and food poisoning require explicit approval before work begins.
 
+## Future proposal: cook's satisfaction
+
+The human proposes a happiness benefit for the cook when they finish preparing an elaborate, good meal, potentially recognized through multiple meaningful ingredients and spices. The recipient is the cook at completion, independently of any later effects on the eater. Qualification, effect magnitude and duration, repeat-prevention, technical feasibility, and implementation remain undecided; this is not authorization to implement the mechanic.
+
 ## Principles
 
 1. Benefits should matter without making cooking mandatory.
@@ -28,3 +32,5 @@ Food preferences, food fatigue, freshness bonuses, overeating, and food poisonin
 ## Compatibility baseline
 
 Build 42; single-player and multiplayer; installation into existing saves; safe removal/reinstallation; compatible third-party foods with usable nutrition; no vanilla edits; no permanent stat changes; defensive custom-data handling.
+
+Interoperability with other mods that alter carrying capacity is not required; disclose the limitation. Food mods that provide usable nutrition remain in scope, including the human's example of Vanilla Foods Expanded (not yet verified or tested).

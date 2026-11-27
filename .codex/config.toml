@@ -1,0 +1,5 @@
+# Project-scoped Codex coordination defaults. Permissions and model selection
+# continue to inherit from the initiating session.
+[agents]
+enabled = true
+max_concurrent_threads_per_session = 3

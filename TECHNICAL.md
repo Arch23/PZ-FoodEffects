@@ -340,14 +340,14 @@ Verified from local installation metadata and the most recent local game log. Ru
 
 - Game installation: `C:\Program Files (x86)\Steam\steamapps\common\ProjectZomboid`.
 - Steam application manifest: `C:\Program Files (x86)\Steam\steamapps\appmanifest_108600.acf`; `buildid` is `26486631`, and both `UserConfig.BetaKey` and `MountedConfig.BetaKey` are `pre-release`.
-- Game-reported version: `C:\Users\noda2\Zomboid\version.txt` contains `42.22.2 3d39148846`; `C:\Users\noda2\Zomboid\console.txt:58,155` reports the same version.
+- Game-reported version: `%USERPROFILE%\Zomboid\version.txt` contains `42.22.2 3d39148846`; `%USERPROFILE%\Zomboid\console.txt:58,155` reports the same version.
 - Bundled runtime: `jre64\bin\java.exe -version` reports OpenJDK `25.0.5+8-LTS`, Zulu25.38+107-CA.
 - Dedicated-server launcher: `ProjectZomboidServer.bat` invokes `zombie.network.GameServer` using the bundled runtime and `projectzomboid.jar`. This confirms that a server launcher is installed alongside the client; it does not prove that a dedicated server has been configured or started.
-- User mod directory: `C:\Users\noda2\Zomboid\mods`. Its installed `examplemod` confirms the observed root `mod.info` plus `media/lua` layout. Vanilla/template evidence remains `mods\examplemod\mod.info` and `Workshop\ModTemplate\Contents\mods\ModTemplate\mod.info`.
+- User mod directory: `%USERPROFILE%\Zomboid\mods`. Its installed `examplemod` confirms the observed root `mod.info` plus `media/lua` layout. Vanilla/template evidence remains `mods\examplemod\mod.info` and `Workshop\ModTemplate\Contents\mods\ModTemplate\mod.info`.
 
 ### Current logs
 
-The existing `C:\Users\noda2\Zomboid\console.txt` was inspected before this diagnostic candidate was installed. It contains normal startup/version material and logs for pre-existing mods, but no `FoodEffectsDiagnostics` prefix. It is therefore not runtime evidence for this work.
+The existing `%USERPROFILE%\Zomboid\console.txt` was inspected before this diagnostic candidate was installed. It contains normal startup/version material and logs for pre-existing mods, but no `FoodEffectsDiagnostics` prefix. It is therefore not runtime evidence for this work.
 
 ### Targeted Java class inspection
 
@@ -411,9 +411,9 @@ Absolute world-age expiry remains technically plausible because `getGameTime():g
 
 Do not install this into a valued save. Use a disposable save and back it up before the test.
 
-1. With the game closed, copy the repository's `FoodEffectsDiagnostics` directory to `C:\Users\noda2\Zomboid\mods\FoodEffectsDiagnostics`. Confirm that it contains both `mod.info` and `42\mod.info`, with scripts under `42\media\lua`. If replacing the earlier copied candidate, remove or rename that old copy first so stale files do not remain. A junction to the repository folder also exposes this layout.
+1. With the game closed, copy the repository's `FoodEffectsDiagnostics` directory to `%USERPROFILE%\Zomboid\mods\FoodEffectsDiagnostics`. Confirm that it contains both `mod.info` and `42\mod.info`, with scripts under `42\media\lua`. If replacing the earlier copied candidate, remove or rename that old copy first so stale files do not remain. A junction to the repository folder also exposes this layout.
 2. Start Project Zomboid, enable **FoodEffects Diagnostics** in the Mods screen, create a new disposable single-player sandbox, and load it. Do not enable it alongside a future production FoodEffects mod.
-3. Quit after reaching the world. In `C:\Users\noda2\Zomboid\console.txt`, find `[FoodEffectsDiagnostics]`. Expected loader evidence is `shared-load=true`, `client-load=true`, and wrapper `installed=true` records. A missing marker or Lua error stops the test; collect the complete log before changing the candidate.
+3. Quit after reaching the world. In `%USERPROFILE%\Zomboid\console.txt`, find `[FoodEffectsDiagnostics]`. Expected loader evidence is `shared-load=true`, `client-load=true`, and wrapper `installed=true` records. A missing marker or Lua error stops the test; collect the complete log before changing the candidate.
 4. In that same save, first eat one ordinary food completely. Record all diagnostic lines between the first `ISEatFoodAction` `before` and last matching `after` record. Verify whether the macro values or item state change, whether `complete` and/or `eat` runs, which side logs it, and whether the test record is written once or more.
 5. Repeat separately for a quarter, half, and multiple actions on the same food; cancellation before any consumption; cancellation after partial consumption; and an item that disappears after consumption. Compare requested and observed values; do not equate them without matching deltas.
 6. Only after ordinary food is understood, test one evolved meal, a legacy bottle, and incremental fluid drinking. For fluids, preserve the complete sequence of `animEvent`, `updateEat`, and `complete` records so duplicate observation can be assessed.
@@ -422,7 +422,7 @@ Do not install this into a valued save. Use a disposable save and back it up bef
 
 For the expanded diagnostic, save the `record-before` and `created-or-updated` lines after a food action. Disconnect/reconnect, or save and restart the server, then perform one food action and compare its first `record-before` fields to the last record written before the restart. The first action will replace that record after logging it. This tests an observed read on the side that invokes the wrapper; it does not by itself prove client synchronization. Use disposable saves. Do not inject malformed records without a separate controlled test.
 
-The local standard client log is `C:\Users\noda2\Zomboid\console.txt`. Dedicated-server log locations depend on the configured server profile; use the server console output and its profile's `Zomboid\Server`/`Logs` files, then report the exact path used. `C:\Users\noda2\Zomboid\logs.zip` may be included with the raw `console.txt` when sharing evidence.
+The local standard client log is `%USERPROFILE%\Zomboid\console.txt`. Dedicated-server log locations depend on the configured server profile; use the server console output and its profile's `Zomboid\Server`/`Logs` files, then report the exact path used. `%USERPROFILE%\Zomboid\logs.zip` may be included with the raw `console.txt` when sharing evidence.
 
 ### Tests executed by Codex at the initial candidate handoff (historical)
 
@@ -473,7 +473,7 @@ The local standard client log is `C:\Users\noda2\Zomboid\console.txt`. Dedicated
 
 **Milestone:** Expanded diagnostic candidate prepared for the next test round.
 
-**Findings:** The human-hosted multiplayer server log `C:\Users\noda2\Zomboid\Logs\2026-11-26_09-23_DebugLog-server.txt:1279` shows server loading. At lines 1951-1953 a requested quarter of minced meat reduced live calories 225 to 150; at 1974-1976 a removed sausage returned NaN food values; at 1986-1991 the user-confirmed interrupted bun action nested `eat` within `serverStop`, producing two observations of one partial change. The test record was observed within the same session; persistence is not established. Client `console.txt` shows connected client-side loading. Missing animation-directory exceptions were also logged and their significance is unverified.
+**Findings:** The human-hosted multiplayer server log `%USERPROFILE%\Zomboid\Logs\2026-11-26_09-23_DebugLog-server.txt:1279` shows server loading. At lines 1951-1953 a requested quarter of minced meat reduced live calories 225 to 150; at 1974-1976 a removed sausage returned NaN food values; at 1986-1991 the user-confirmed interrupted bun action nested `eat` within `serverStop`, producing two observations of one partial change. The test record was observed within the same session; persistence is not established. Client `console.txt` shows connected client-side loading. Missing animation-directory exceptions were also logged and their significance is unverified.
 
 **Changed files:** `FoodEffectsDiagnostics/42/media/lua/shared/FoodEffectsDiagnostics/Consumption.lua` and `Diagnostics.lua`, `TECHNICAL.md`, `TODO.md`, and `CHANGELOG.md`.
 
@@ -522,12 +522,12 @@ The human developer ran a locally hosted multiplayer server and client on Build 
 - In SP, the same beef jerky item went from 410 to 307.5 calories after requested `0.25`, then to approximately 102.5 after requested `0.5` (`client-console.txt:875-880`). The second item delta is approximately 205, or half its original 410, not half the 307.5 remaining. This is an observation for this item and sequence, not a universal formula or proof of nutrition applied to the player.
 - In hosted MP, one `PanFriedVegetables` item went from approximately 121.02 to 90.765 to 60.51 calories across two `0.25` actions; the final requested `1` removed it (`server-debug.txt:8068-8355`). Each action had a separate process-local diagnostic action ID.
 - Removed items returned `NaN` nutritional fields after the call: SP meat stick and fries (`client-console.txt:883-896`) and MP meal/hotdog (`server-debug.txt:8299-8471`). Presence and finite values must be checked; an invalid post-removal snapshot cannot independently prove the actual amount applied to the player.
-- User-confirmed interrupted MP bun consumption nested `ISEatFoodAction.eat` inside `serverStop` in the earlier server log `C:\Users\noda2\Zomboid\Logs\2026-11-26_09-23_DebugLog-server.txt:1986-1991`. The SP interrupted jerky action similarly logged action 7 with nested invocation 8, progress and `eat` argument approximately 0.0724, and calories 102.5 to 72.81 (`client-console.txt:899-905`). These are paired observations of one interrupted action, not separate consumption transactions. No true zero-consumption cancellation is established.
+- User-confirmed interrupted MP bun consumption nested `ISEatFoodAction.eat` inside `serverStop` in the earlier server log `%USERPROFILE%\Zomboid\Logs\2026-11-26_09-23_DebugLog-server.txt:1986-1991`. The SP interrupted jerky action similarly logged action 7 with nested invocation 8, progress and `eat` argument approximately 0.0724, and calories 102.5 to 72.81 (`client-console.txt:899-905`). These are paired observations of one interrupted action, not separate consumption transactions. No true zero-consumption cancellation is established.
 
 ### Fluids and test record
 
 - SP soda used incremental `ISDrinkFluidAction.updateEat` observations: fill ratio went from 1 to 0.75 for a requested quarter, with the final nested completion update showing no additional delta (`client-console.txt:907-916,1579-1588`). Several calls showed no change. Hosted MP beer also generated nested `animEvent`/`updateEat` observations (`server-debug.txt:2041-2224`). Neither case establishes nutrient application or the legacy bottle path.
-- The first record-before in the later hosted server session reports the earlier `ISEatFoodAction.serverStop` and world age `4.138049125671387` (`server-debug.txt:2166`), matching the previous server session's bun record (`C:\Users\noda2\Zomboid\Logs\2026-11-26_09-23_DebugLog-server.txt:1991`). This is evidence that this player's diagnostic record survived that intervening hosted-server restart. It does not prove explicit replication, independent reconnect behavior, other characters, malformed-data recovery, or removal/reinstallation safety.
+- The first record-before in the later hosted server session reports the earlier `ISEatFoodAction.serverStop` and world age `4.138049125671387` (`server-debug.txt:2166`), matching the previous server session's bun record (`%USERPROFILE%\Zomboid\Logs\2026-11-26_09-23_DebugLog-server.txt:1991`). This is evidence that this player's diagnostic record survived that intervening hosted-server restart. It does not prove explicit replication, independent reconnect behavior, other characters, malformed-data recovery, or removal/reinstallation safety.
 - The expanded diagnostic generated repeated `getJobDelta` errors in the hosted MP run because its server action lacked `self.action`. After the guard was added, the subsequent SP log contains job progress and no matching `getJobDelta` exception. The guarded server path has not yet been rerun; the fix is not verified in MP. The SP fluid test also generated many log and record writes, including calls with no observed change; instrumentation volume needs review before larger tests.
 
 ### Milestone handoff
@@ -847,3 +847,587 @@ The source-available [Moodles in Lua](https://github.com/molecule31/moodlesinlua
 **Decisions required:** Evaluate prospective moodle dependencies for Build 42.22.2, SP/MP, lifecycle, license and maintenance before selecting one; the user's openness is not a choice of framework. FE-007 remains active.
 
 **Next steps:** Review the entire candidate for fault handling and prepare a consolidated disposable-save procedure including disabled-by-default switches, admin/debug settings, server and client logs, persistence, malformed data, and removal/reinstallation.
+
+## Multi-agent orchestration initialization (2026-11-26)
+
+**Milestone:** Established project-scoped Codex role definitions and independently reviewed the latest research; no gameplay code or diagnostic behavior changed.
+
+**Findings:** Review basis is committed HEAD `0f201a6f0d4463b7b984200b49967ece2fb563be` (`new research of game code done`) with a clean working tree and `git diff --check HEAD` passing. Installed Codex CLI `0.171.0-alpha.13.2` supports project `.codex/config.toml`, standalone role files in `.codex/agents/`, inherited parent permissions, inherited model settings when no override is configured, and `agents.max_concurrent_threads_per_session`. The project configuration enables agents and caps direct concurrent subagents at three. No documented configuration key was found to disable nested delegation, so role instructions prohibit it.
+
+The independent researcher, planner, and reviewer agree that FE-007 remains active. The checked-in SP and hosted-MP logs support only observed partial-food cases; they do not prove a production-safe authoritative consumption hook, zero-progress cancellation behavior, standalone dedicated-server behavior, persistence/transport, or broad food/fluid coverage. Current capacity diagnostics remain disposable-character experiments because restoration cannot be guaranteed across failed mutation, disconnect, save, restart, process termination, or conflicting writers. Native custom moodles remain unfit for adoption on current evidence: registry maps are snapshotted, arbitrary icon mapping is not established, and rendering may dereference a missing texture.
+
+**Changed files:** `.codex/config.toml`; `.codex/agents/researcher.toml`; `.codex/agents/planner.toml`; `.codex/agents/developer.toml`; `.codex/agents/reviewer.toml`; `AGENTS.md`; `TODO.md`; `CHANGELOG.md`; and this record.
+
+**Verified functionality:** Codex configuration structure and role-file schema were checked against the official current Codex manual and local CLI help. The role files use documented required fields only. This milestone did not execute Project Zomboid, alter diagnostic Lua, or validate any game runtime behavior.
+
+**Unverified assumptions / blockers:** Project configuration trust/loading must be confirmed in the developer's normal Codex desktop workflow; custom roles cannot impose a stronger sandbox than the parent session. No role-model override is selected. FE-007 remains blocked by authoritative consumption, reversible effect, persistence/replication, and presentation evidence. The tracked diagnostic captures predate the latest committed diagnostics and do not validate them.
+
+**Decisions required:** Human approval is still required for FE-009 offline-expiry behavior, any fallback presentation or dependency, balance values, and an initial effect target after technical gates close. No new decision is requested to retain the current research-only course.
+
+**Next steps:** Run a reviewed disposable-character diagnostic matrix: read-only capacity and current food observation in SP, then guarded mutation/restoration and transport/persistence checks in hosted MP and standalone dedicated MP; include zero-progress cancellation, evolved meals, legacy bottles, fluids, malformed records, reconnect/restart, and reviewed redacted logs. Reassess FE-007 before proposing a production vertical slice.
+
+## Offline expiry decision and diagnostic readiness
+
+**Milestone:** Human approved expiry against advancing server world time while disconnected, and requested a toggle if feasible (FE-009). The alternative mode's semantics remain to be proposed and approved.
+
+**Findings:** The existing synthetic persistence probe records a counter and world age, but has no effect timer or offline-expiry simulation. It can test its own record's SP save/load behavior, not FE-009. The read-only capacity and synthetic persistence menu candidates exist but remain untested in-game. The delayed mutation probe has unresolved ownership and restoration risks and is not ready for a broad test handoff. A focused SP preflight could exercise the existing read-only and synthetic probes without updating diagnostic Lua, after preparing exact switch settings and confirming the installed mod points to this revision.
+
+**Changed files:** `DECISIONS.md`, `TODO.md`, `CHANGELOG.md`, and `TECHNICAL.md`.
+
+**Verified functionality:** Static review of diagnostic config, menu, persistence counter and capacity probe only. No game test performed.
+
+**Unverified assumptions:** Menu loading, SP record persistence, optional offline-mode feasibility and semantics, MP clocks and reconnection behavior, and capacity restoration remain unverified.
+
+**Decisions required:** Alternative toggle semantics and presentation choice remain subject to human approval. FE-007 remains active.
+
+**Next steps:** Prepare and verify a narrowly scoped SP preflight and installation instructions, then design a dedicated synthetic offline-expiry experiment before requesting an MP expiry test.
+
+## SP preflight and synthetic offline expiry candidate
+
+**Milestone:** Prepared an SP preflight and a separate disabled-by-default server-only synthetic expiry candidate. No gameplay implementation was added.
+
+**Findings:** `%USERPROFILE%\Zomboid\mods\FoodEffectsDiagnostics` is a junction to this repository's diagnostic mod. The expiry probe uses the existing `OnClientCommand` pattern and server world-age clock: start creates a namespaced synthetic record with a one-world-hour deadline; check logs the stored deadline and server-computed remaining time. Client requests carry no deadline, player identity, or duration. Starting again resets the record. This is a diagnostic value, not a balance decision. The server needs to continue running with another player connected or otherwise demonstrably advance world time while the test player is disconnected; a stopped or paused world cannot prove offline expiry.
+
+**SP preflight procedure:** Use a disposable single-player save. Close the game. In `FoodEffectsDiagnostics/42/media/lua/shared/FoodEffectsDiagnostics/Config.lua`, set only `capacity` and `persistenceTransport` to `true`; leave `consumption`, `capacityMutation`, `capacityMutationServer`, `moodle`, and `offlineExpiry` false. Start the game with FoodEffectsDiagnostics enabled, load the disposable character, right-click the world, and select `FoodEffects diagnostics > Inspect local capacity (log)` and `Probe SP persistence record` once each. Save and quit normally; preserve `%USERPROFILE%\Zomboid\console.txt` privately before reopening the game. Reload the same character and select `Probe SP persistence record` once more. Quit normally and preserve the new console log separately. Report if the menu is absent or an error appears. Restore both switches to false and restart before other play. The two persistence log records should show consecutive counts; this is evidence only for this character and save path. The capacity inspection does not invoke the mutation setter.
+
+**Changed files:** Diagnostic `Config.lua`, `FoodEffectsDiagnostics_Client.lua`, `FoodEffectsDiagnostics_Server.lua`, `TODO.md`, `CHANGELOG.md`, and `TECHNICAL.md`.
+
+**Verified functionality:** Static inspection against existing diagnostic command and context-menu patterns; junction target verified; `git diff --check` passed. No Lua interpreter or game runtime test was performed. Config/client/server SHA-256 at preparation: `3E75756D32AE3BE9243C239D37277952058E26D1D8454726049B5661BD51BF8B`, `00CB2C98189A1EE627FB97AA9F5B596304F886528EF368320B46C59CA9825E03`, `C89561C977973E8FC83926F2F5FFE10C710717AEBA5DA4DF442244FA713FB61E` respectively, with all switches defaulting to false.
+
+**Unverified assumptions / blockers:** Menu callback/loading, client/server request delivery, synthetic record persistence, world-clock behavior, and Lua execution remain unverified. A check without a valid record logs failure; it does not create one. The candidate does not test optional paused-offline semantics, production timers, or safe capacity mutation.
+
+**Decisions required:** None for this preflight. Optional offline-mode semantics and eventual presentation remain human decisions; FE-007 remains active.
+
+**Next steps:** Human runs the SP preflight and preserves the private log; inspect the results before preparing the hosted/dedicated offline-expiry procedure and evaluating the mutation probe.
+
+## SP preflight observation
+
+**Milestone:** Human ran the read-only capacity and synthetic persistence preflight, returning to the main menu and reloading the same character without closing the game process.
+
+**Findings:** The first provided console capture records capacity `maxWeight=12`, `maxWeightDelta=1` and a missing synthetic record becoming count 1. The second capture includes those lines and a later reload with the same capacity values and `recordStatus=valid previousCount=1 count=2`. The captures show mod/Lua loading on both world loads and `mutation=false`. This supports record survival across a world unload/reload in the same process; it does not establish survival across process termination, multiplayer, or restart. Both captures contain a vanilla mannequin-zone Lua error, without evidence linking it to this mod. The source logs contain player identity and remain outside the repository.
+
+**Changed files:** Reset `Config.lua` capacity and persistence switches to false; updated `TODO.md`, `CHANGELOG.md`, and this handoff. All switches are now false on disk; the running game retains its loaded settings until restarted.
+
+**Verified functionality:** Human-run SP context-menu callbacks, read-only capacity values, and synthetic counter across main-menu reload for one character. `git diff --check` to be run at handoff.
+
+**Unverified assumptions:** Full process restart persistence, dedicated/hosted behavior, transport, offline expiry, mutation/restoration, and production safety remain unverified.
+
+**Decisions required:** None for this observation; FE-007 remains active.
+
+**Next steps:** Test persistence across a complete game restart, then prepare a separate server-world-time experiment with a demonstrably advancing world during disconnect.
+
+## SP process restart persistence observation
+
+**Milestone:** Human restarted the game completely and repeated the synthetic persistence probe with the same disposable character.
+
+**Findings:** `%USERPROFILE%\Zomboid\console.txt:827` reports `recordStatus=valid previousCount=2 count=3`, supporting survival of this diagnostic character record across a full game-process restart. The log also contains the previously observed vanilla mannequin-zone error; no causal connection to the diagnostic mod is established. The raw log contains player identity and remains outside the repository.
+
+**Changed files:** Reset `persistenceTransport` to false in `Config.lua`; updated `TODO.md`, `CHANGELOG.md`, and this handoff.
+
+**Verified functionality:** Human-run SP synthetic counter persisted across a full process restart for one character/save. No gameplay effect, MP persistence, synchronization, or removal behavior was tested.
+
+**Unverified assumptions:** Hosted/dedicated transport and persistence, expiry while disconnected, malformed data, other save paths, and production safety remain unverified.
+
+**Decisions required:** None; FE-007 remains active.
+
+**Next steps:** Prepare a hosted or dedicated server experiment in which another connected player or equivalent verified mechanism keeps world time advancing while the test character disconnects.
+
+## Dedicated-server synthetic offline expiry observation
+
+**Milestone:** Human ran the synthetic deadline probe on a standalone non-Steam dedicated server with `PauseEmpty=false`, disconnecting and reconnecting the same test player.
+
+**Findings:** Server log `%USERPROFILE%\Zomboid\Logs\2026-11-26_12-54_DebugLog-server.txt:1949` records start at world age 8.655592 with expiry 9.655592. The pre-disconnect check at line 1950 reports 8.686070 and remaining 0.969522. The connection log records disconnect at 13:01:06 and reconnect at 13:06:06; the post-reconnect check at server line 1952 reports world age 10.232069, the original deadline, and remaining 0. This supports both world advancement during the interval and survival of this synthetic record across this disconnect/reconnect. It does not isolate exactly how much advancement occurred between disconnect and reconnect or establish production effect behavior. Raw logs include identifying/network data and remain outside Git.
+
+**Changed files:** `Config.lua` resets `offlineExpiry=false`; `TODO.md`, `CHANGELOG.md`, and this handoff updated.
+
+**Verified functionality:** One human-run dedicated-server synthetic start/check/reconnect case and client-to-server diagnostic command handling. No server restart, second character, production state, or client display synchronization test.
+
+**Unverified assumptions:** Broader persistence, server restart, malformed records, multiplayer authority of food consumption, configurable paused-offline semantics, and production expiry lifecycle remain open.
+
+**Decisions required:** None for this observation. FE-007 remains active; the optional alternative expiry mode still requires feasibility and human approval.
+
+**Next steps:** Review the consumption authority and reversible-effect blockers, and design the smallest next diagnostic to reduce one of them before proposing a production vertical slice.
+
+## Dedicated transport and moodle preflight preparation
+
+**Milestone:** Prepared the next Milestone 4 runtime checks: synthetic server transport/persistence and read-only moodle member exposure on the standalone dedicated server.
+
+**Findings:** `Config.lua` enables `persistenceTransport` and `moodle` only. The client menu requests a server-owned counter, and the server responds with its own count and world age; the client payload does not determine the count. Moodle inspection only logs whether a member is visible and does not register a type. An accessible member will not establish that registration or rendering is safe.
+
+**Changed files:** `Config.lua` and this handoff. This is a temporary test configuration, to be reset after the test.
+
+**Verified functionality:** Static review of the existing diagnostic code; the prior synthetic expiry test established the context-menu and client-command route for that separate probe, not this transport handler. No new runtime test was performed.
+
+**Unverified assumptions:** Server response, record persistence through server restart, moodle Lua exposure, and exact server/client clock relationships. No production-state or presentation behavior is established.
+
+**Decisions required:** None. FE-007 remains active.
+
+**Next steps:** Run one transport request and moodle inspection, stop the server normally, restart it, reconnect as the same disposable character, and request transport again. Compare server and client logs; reset both switches after inspection.
+
+## Dedicated transport and moodle preflight observation
+
+**Milestone:** Human ran synthetic transport before and after a dedicated-server restart and inspected moodle exposure on the client.
+
+**Findings:** The first server log `%USERPROFILE%\Zomboid\Logs\logs_2026-11-26_14-03\2026-11-26_14-01_DebugLog-server.txt:1932` records a missing record becoming count 1; the subsequent server log `%USERPROFILE%\Zomboid\Logs\2026-11-26_14-04_DebugLog-server.txt:1932` reports valid previous count 1 and count 2. Client `console.txt:770,1394` reports the matching respective counts and server world ages. The client inspection at `console.txt:771` reports `registerAccessible=true valueType=function`. This is visibility of a member, not evidence that it can be invoked safely or that custom levels, icons or rendering work. Raw logs contain identifying information and remain outside Git.
+
+**Changed files:** Reset `persistenceTransport` and `moodle` to false in `Config.lua`; updated `TODO.md`, `CHANGELOG.md`, and this handoff.
+
+**Verified functionality:** One dedicated-server player's synthetic counter survived server restart and matching responses were received by the client; a moodle registration member was visible as a Lua function in this client session. No registration was attempted.
+
+**Unverified assumptions:** Multiple players, malformed records, production data, clock synchronization guarantees, actual moodle registration and lifecycle, and display behavior remain untested. FE-007 remains active.
+
+**Decisions required:** No new decision; presentation choice remains subject to human approval.
+
+**Next steps:** Investigate the production consumption authority and reversible modifier blockers; continue testing synthetic persistence across additional cases when useful.
+
+## Consumption authority independent review
+
+**Milestone:** Researcher and reviewer independently traced food action and network evidence; no implementation or runtime test was performed.
+
+**Findings:** The current diagnostic marker is not evidence that food changed: `FoodEffectsDiagnostics/42/media/lua/shared/FoodEffectsDiagnostics/Consumption.lua:72` assigns `changed=true` to every non-fluid invocation, so `candidate=food-observation-boundary` can appear even without consumption. This corrects the historical assertion in the Milestone 5 entry that the marker is emitted only for changed calls. The installed `media/lua/shared/TimedActions/ISEatFoodAction.lua:141-151,193-199` nests `eat` under `serverStop` and scales the requested amount by progress. Local decompiled `zombie.core.NetTimedAction` reconstructs an action using serialized constructor arguments; `NetTimedActionPacket.processServer` checks consistency and player/action identity, but the inspected path does not establish independent validation of the item and portion. Server-side execution is therefore not yet proof of trustworthy nutrition. `IsoGameCharacter.Eat` adjusts portions, applies burnt-food scaling, and invokes `OnEat` before food reduction; player nutrition clamping and removed-item NaNs further limit delta inference. `EatFoodPacket` is a server-to-client path, not an established server-side authoritative hook.
+
+**Changed files:** `TODO.md` and `TECHNICAL.md`; no diagnostic or gameplay code changed.
+
+**Verified functionality:** Static inspection of installed vanilla Lua, local decompiled Java and existing logs by independent agents. Existing interrupted-action evidence shows nonzero consumption and does not verify true zero-progress cancellation. No runtime test performed.
+
+**Unverified assumptions:** Complete network validation and all possible engine consumption paths remain untraced; food and nutrition snapshots can be ambiguous. The marker must not be interpreted as a transaction or contribution.
+
+**Decisions required:** None for further diagnostic research. FE-007 remains active.
+
+**Next steps:** Correct the diagnostic marker to distinguish finite observed change, no observed change, and unknown; independently review it, then compare immediate cancellation and ordinary partial consumption on a disposable dedicated-server character. A cancellation request alone does not prove zero consumption.
+
+## Food observation classification candidate
+
+**Milestone:** Developer replaced the misleading food marker and an independent reviewer assessed the change. Prepared consumption-only configuration for a disposable dedicated-server test.
+
+**Findings:** `Consumption.lua` compares six finite item fields and four finite player nutrition fields on the same item/player, requiring inventory membership on both sides. It emits `observed_change`, `observed_unchanged`, or `unknown`; missing, non-finite or removed data produces unknown. `serverStop` remains unclassified while nested `eat` retains parent/depth metadata. The reviewer found no blocking defect in the classification; observed change can have other causes and unchanged applies only to sampled fields. The wrapper's existing transparency and error behavior are not newly established.
+
+**Changed files:** Diagnostic `Consumption.lua`, temporarily enabled `consumption` in `Config.lua`, `TODO.md`, `CHANGELOG.md`, and this handoff.
+
+**Verified functionality:** Static developer and independent reviewer inspection; `git diff --check` to be run. No Lua runtime or game test was run. No gameplay effects changed.
+
+**Unverified assumptions:** Runtime getter availability, exact-zero cancellation, full removal, callbacks, nesting, authoritative inputs, and all other food/fluid paths remain open. No classification proves a consumed amount or secure authority.
+
+**Decisions required:** None for diagnostics. FE-007 remains active.
+
+**Next steps:** Human compares ordinary partial eating, immediate interruption and full removal on disposable dedicated-server character; capture both logs and exact actions. Restore configuration after examination.
+
+## Dedicated food observation and test-item helper
+
+**Milestone:** Human ran the three food cases on a dedicated server; developer prepared and reviewer independently inspected a configurable diagnostic item helper.
+
+**Findings:** Server log `%USERPROFILE%\Zomboid\Logs\2026-11-26_14-19_DebugLog-server.txt:1940-1950` records beef jerky quarter completion with calories 410 to 307.5 and classification `observed_change`. The human interrupted the second action by shoving (Ctrl+Space): `serverStop` encloses `eat`, progress approximately 0.06681 with requested portion 0.5, and item calories 410 to approximately 396.30; it is not a zero-consumption observation. Full consumption removed the item, producing non-finite post-item fields and `unknown` as intended. These are observations for this run, not proof of trusted authority. Raw logs remain private.
+
+The disabled-by-default `giveTestItems` menu is multiplayer-only. The server selects `testItemType` and `testItemCount` (default `Base.BeefJerky`, 3), ignores client arguments and targets the requesting player; it validates registered type and integer count 1–10. While enabled, any connected player may repeatedly request the configured item, including a non-food item. The reviewer found the server item-add and synchronization pattern in installed `media/lua/server/ClientCommands.lua:230`; runtime operation and delivery are not established. A failed send may leave a partially added server inventory.
+
+**Changed files:** Diagnostic `Config.lua`, client and server Lua; `TODO.md`, `CHANGELOG.md`, and this handoff. Consumption is reset to false, and the item helper defaults false.
+
+**Verified functionality:** Human-run classification for these three dedicated-server food cases; static independent review of the item helper. No runtime test of the helper.
+
+**Unverified assumptions:** Zero-progress cancellation, client receipt and reconnect persistence for helper items, invalid configurations and packet failures, server input trust, and production safety remain open.
+
+**Decisions required:** None; FE-007 remains active.
+
+**Next steps:** For a future disposable-server test, configure item type/count and enable `giveTestItems` on both sides before restart; verify receipt and reconnect, then disable it. Continue research into authoritative consumption and a reversible effect surface.
+
+## Food action trust and modifier research
+
+**Milestone:** Parallel researchers traced timed-action reconstruction and candidate modifier ownership; an independent reviewer checked the packet conclusions. No diagnostic or gameplay implementation changed.
+
+**Findings:** `PZNetKahluaTableImpl.saveInventoryItem/loadInventoryItem` in local `tools/decompiled-all/zombie/network/PZNetKahluaTableImpl.java:291,560` transmits container and item references and resolves an item on the server. `ContainerID.java:238,343` resolves player inventories through the incoming connection, but also handles world/object/vehicle containers. `NetTimedAction.java:145` reconstructs the Lua action from serialized arguments; `NetTimedActionPacket.java:63` checks consistency and player identity. The inspected path does not establish independent validation of every food item/portion.
+
+Resolving a server item does not alone establish server-originated nutrition: `ItemStatsPacket.java:359,470,515` parses food nutrient fields and applies them to a resolved item on the server. `PacketTypes.java:685-713` runs authorization, consistency and configured anti-cheat checks; the reviewed packet has no explicit anti-cheat list or consistency override, with the inherited default returning true. This is a static trust concern, not a demonstrated exploit: complete packet paths, effective policy, timing, and exploitability remain unverified. Vanilla `media/lua/shared/TimedActions/ISAddItemInRecipe.lua:68-85` is a candidate for studying legitimate meal changes and synchronization.
+
+For reversible targets, direct `XP.addXpMultiplier` in `tools/decompiled/zombie/characters/IsoGameCharacter.java:15801,16117` uses a saved per-perk entry also used by vanilla `media/lua/shared/TimedActions/ISReadABook.lua:103-116`; overwriting/restoring it could conflict with book bonuses. This rules out treating that direct API as an independently owned modifier, not every possible XP design. No safe source-owned modifier was established.
+
+**Changed files:** `TODO.md` and this handoff. No source code changed.
+
+**Verified functionality:** Static local Lua/decompiled Java inspection, with independent review of packet claims; no game or network test performed.
+
+**Unverified assumptions:** Item-state origin and validation across all paths, legitimate recipe sync timing, portion trust, all candidate modifier facilities, and runtime behavior. Existing game tests do not establish security or production safety.
+
+**Decisions required:** None for further diagnostic research; FE-007 remains active. No gameplay target selected.
+
+**Next steps:** Design a narrow evolved-meal diagnostic capturing server-side item identity and nutrition around ingredient addition and eating; include the configurable item helper in that future game test. In parallel, search for a truly source-owned reversible modifier facility.
+
+## Evolved-meal diagnostic preparation
+
+**Milestone:** Prepared a disposable-server salad experiment and configurable multi-item diagnostic kit. Independent reviewers examined both changes.
+
+**Findings:** Installed `media/scripts/generated/evolvedrecipes.txt:220` defines a bowl-to-salad recipe; `media/scripts/generated/items/food.txt:91,14467` identifies tomato and lettuce as eligible. `ISAddItemInRecipe.lua:68-85` replaces the base with `recipe:addItem`'s result and sends item stats on the server. The diagnostic wraps `complete` once, logging before/after base and ingredient identity, nutrition, inventory status, and extra/spice counts. First addition may replace the bowl. It does not observe packet receipt or establish provenance, constituent lists, or authority.
+
+The helper now supports an optional server-configured contiguous kit, validated completely before adding items and bounded to 20 total; the previous single-item configuration remains the fallback. Any connected player can repeatedly request the configured kit while enabled. A send failure can leave partial server-side additions. The current temporary test configuration enables `consumption`, `evolvedRecipe`, and `giveTestItems` with one bowl, tomato, and lettuce; all other switches are false.
+
+**Changed files:** New shared `EvolvedRecipe.lua`, diagnostic `Config.lua` and server Lua, `TODO.md`, `CHANGELOG.md`, and this handoff.
+
+**Verified functionality:** Static local source and independent code reviews; `git diff --check` required at handoff. No Lua runtime or in-game test. Menu availability and recipe eligibility are source-supported, not runtime-confirmed.
+
+**Unverified assumptions:** Module auto-load, non-food bowl snapshots, kit delivery, item identity and nutrition across addition and partial eating, packet synchronization and trustworthy provenance. The observation wrapper does not change gameplay decisions or prove production safety.
+
+**Decisions required:** None for this diagnostic; FE-007 remains active.
+
+**Next steps:** Restart server and client, request kit, make salad with tomato and lettuce, eat a quarter, preserve logs and inspect; reset switches after test.
+
+## Future cook satisfaction proposal
+
+**Milestone:** Recorded the human's proposed reward for the cook when an elaborate meal is completed.
+
+**Findings:** Multiple meaningful ingredients and spices are candidate signals; ingredient provenance and a server-authoritative completion path are not yet verified. The cook, not necessarily the eater, is the proposed recipient. No implementation or balance was approved.
+
+**Changed files:** `DESIGN.md`, `TODO.md`, and `TECHNICAL.md`.
+
+**Verified functionality:** Documentation only; no game or code test.
+
+**Unverified assumptions:** Completion hooks, ingredient provenance, happiness surface, duplicate prevention, and multiplayer/save behavior.
+
+**Decisions required:** Qualification criteria, effect details, and implementation require human approval after feasibility research.
+
+**Next steps:** Continue the current diagnostic milestone; research this future proposal when prioritized.
+
+## Dedicated-server salad observation
+
+**Milestone:** Human requested the configured diagnostic kit, added tomato and lettuce to a bowl, and ate one quarter of the resulting salad on a dedicated server.
+
+**Findings:** `%USERPROFILE%\Zomboid\Logs\2026-11-26_14-36_DebugLog-server.txt:1939-1942` records server addition and send calls for one bowl, tomato and lettuce; subsequent actions support receipt in this case, not general packet reliability. At lines 1943-1944 the bowl is replaced by a different-ID salad: half the tomato's 14 calories moves to a 7-calorie salad, and the tomato retains 7. Lines 1945-1946 show lettuce falling from 54 to 36 calories while the same salad rises from 7 to approximately 25; extra-item count goes from 1 to 2. Lines 1947-1949 show a quarter salad action: salad calories approximately 25 to 18.75 and player calories rise by 6.25, with `observed_change`. These are immediate observations in one session, not evidence of complete ingredient provenance, all recipe behavior, packet origin, or trusted authority. Raw logs remain private.
+
+**Changed files:** Reset `consumption`, `evolvedRecipe`, and `giveTestItems` to false in `Config.lua`; updated `TODO.md`, `CHANGELOG.md`, and this handoff.
+
+**Verified functionality:** One kit request, two evolved-recipe observations including bowl replacement, and one partial eating action on a dedicated server. No server restart or helper failure test.
+
+**Unverified assumptions:** Item-stat packet ordering/origin, malicious inputs, third-party recipes/foods, ingredient identities beyond counts, recipe cancellation, and broader compatibility. FE-007 remains active.
+
+**Decisions required:** None for this observation.
+
+**Next steps:** Trace legitimate item-stat synchronization and ownership validation further, and continue seeking a source-owned reversible effect surface before selecting a production vertical slice.
+
+## Recipe synchronization and timed-action candidate research
+
+**Milestone:** Independently researched legitimate evolved-recipe synchronization and candidate temporary-effect surfaces; reviewer checked the packet trust conclusions. No diagnostic or production code changed.
+
+**Findings:** Installed `media/lua/shared/TimedActions/ISAddItemInRecipe.lua:68-85` executes `recipe:addItem` and calls `sendItemStats` under `isServer()`. Local `tools/decompiled-all/zombie/Lua/LuaManager.java:3779` delegates that Lua function to the server; `zombie/network/GameServer.java:2948` sends item stats to the owning player or relevant clients. `zombie/scripting/objects/EvolvedRecipe.java:265` also sends replacement and item-stat updates in certain server-side branches. The salad diagnostic captures server action snapshots, not client receipt or packet ordering. Separately, the client send and server apply paths in `GameClient.java:1999` and `ItemStatsPacket.java:470,515` remain a trust boundary, not a demonstrated exploit. `ISAddItemInRecipe:isValidStart` returns true on server and has client-side eligibility checks; that observation alone does not establish all validation.
+
+No source-owned reversible modifier was found in the bounded search. A distinct exploratory candidate is per-action duration interposition: installed `media/lua/shared/TimedActions/ISBaseTimedAction.lua:78-80,99-124` adjusts duration during action creation, and `tools/decompiled-all/zombie/core/NetTimedAction.java:74-96` invokes adjustment on the server. This is shared-code interposition, not an established independent modifier API; composition with other mods, action coverage, duplicate adjustment, authority, interruption and runtime behavior remain unverified. Faster actions are not an approved FoodEffects benefit.
+
+**Changed files:** `TODO.md` and this handoff; no diagnostic or gameplay code changed.
+
+**Verified functionality:** Static local vanilla Lua and decompiled Java inspection, with independent review; no new game test.
+
+**Unverified assumptions:** Client receipt/convergence and reconnect behavior for meals, packet ordering and complete validation, adversarial integrity, and availability of any independently owned modifier. Bounded search is not proof that none exists.
+
+**Decisions required:** None for research. Any choice of a timed-action gameplay benefit and presentation route needs human approval; FE-007 remains active.
+
+**Next steps:** Design a read-only paired server/client snapshot for the same server-selected meal after additions and reconnect, without trusting client-reported values; investigate duration interposition as a technical candidate only. The former tests observed convergence, not security.
+
+## Validation and temporary-effect constraints
+
+**Milestone:** Parallel source research assessed nutrition-validation strategies and timed-action duration; an independent reviewer checked the first-slice gate. No implementation or runtime test performed.
+
+**Findings:** A server snapshot at eating time cannot alone establish nutrition origin because inspected `tools/decompiled-all/zombie/network/packets/ItemStatsPacket.java:470-488,515-539` can apply received fields. Finite/range validation and bounded contributions can limit extreme input but do not prove authenticity; fixed bounds may exclude legitimate third-party foods. Comparing against script defaults is insufficient: vanilla `media/lua/server/Fishing/BuildingObjects/FishingNet.lua:127-130`, `media/lua/shared/Definitions/animal/ButcheringUtil.lua:440-443`, and decompiled `zombie/scripting/objects/EvolvedRecipe.java:265,390-418` demonstrate dynamic values or cooking-level adjustments. A complete provenance ledger is not established. Fail-closed behavior, fixed caps or exclusions may change compatibility or gameplay and require a concrete proposal and human approval.
+
+The timed-action duration candidate has a specific repeat-application risk: installed `media/lua/shared/TimedActions/ISWashClothing.lua:193-215,230` calls `adjustMaxTime` inside `getDuration`, while `ISBaseTimedAction.lua:78-80` and decompiled `zombie/core/NetTimedAction.java:74-96` also invoke adjustment on respective paths. `ISAttachItemHotbar.lua:127` and `ISEquipWeaponAction.lua:292` use it for animation calculations. Exact runtime call counts remain unverified. This is not a source-owned modifier and is not an approved gameplay benefit.
+
+**Changed files:** `TODO.md` and this handoff; no diagnostic or gameplay code changed.
+
+**Verified functionality:** Static inspection of local vanilla Lua and decompiled Java, with independent scope review. No new in-game test.
+
+**Unverified assumptions:** Complete packet validation, nutrition provenance, runtime duration calls, all effect surfaces, and the impact of proposed bounds. FE-007 remains active. One universal hook is not required; any excluded path or compatibility trade-off must be presented for human approval.
+
+**Decisions required:** No new decision at this research stage; first effect, balance, presentation, and any scope reduction require human approval after concrete evidence.
+
+**Next steps:** Design and independently review a non-mutating duration-call observation for selected actions, and formulate concrete nutrition-validation options with their compatibility implications before proposing a vertical slice.
+
+## Duration observation preparation and validation options
+
+**Milestone:** Prepared and independently reviewed a diagnostic observer for `ISAddItemInRecipe` and `ISWashClothing` duration adjustment. Prepared the existing salad kit for a disposable dedicated-server test; no effect multiplier is applied.
+
+**Findings:** `Duration.lua` wraps the selected classes' inherited `adjustMaxTime`, records process-local instance/invocation IDs and input/output, and calls the original once with returned values forwarded. It captures the inherited method at installation and assigns class-local wrappers, so later mods replacing the base method may be bypassed while enabled; run an isolated test. It does not capture call purpose, elapsed time, player identity, or cross-side action identity. Server lookup and module loading remain runtime-unverified. Washing is optional: local `ISWorldObjectContextMenu.lua:1772-1810` defines a callback, but the inspected Lua search did not establish a reachable UI call site.
+
+Nutrition-validation options remain proposals: (1) finite/nonnegative checks, verified server-observed consumption and existing per-effect duration cap preserve broad compatibility but do not authenticate nutrition or independently satisfy FE-007; (2) additional item/rate caps limit extremes but can penalize legitimate dynamic or modded foods and require human balance/compatibility approval; (3) fail closed without verified provenance needs a ledger covering creation, transfers, crafting and synchronization, which has not been established and could exclude existing saves or foods; (4) audit-only shadow observation supports research without granting gameplay effects. Script-default equality or strict conservation is incompatible with observed dynamic vanilla foods and Cooking adjustments.
+
+**Changed files:** New diagnostic `Duration.lua`, temporary `durationObservation` and `giveTestItems` configuration, `TODO.md`, `CHANGELOG.md`, and this handoff.
+
+**Verified functionality:** Static local source inspection and independent reviewer assessment; `git diff --check` required. No Lua runtime or game test, and no gameplay decision.
+
+**Unverified assumptions:** Probe auto-load, actual server/client adjustment calls, wrapper composition, exact duration behavior, and all nutrition authenticity options. Logging calls does not prove a safe modifier or time effect. FE-007 remains active.
+
+**Decisions required:** Any cap, exclusion, reduced scope, or timed-action benefit needs a concrete proposal and human approval.
+
+**Next steps:** Run the isolated salad action with instant actions off; optionally wash a dirty garment only if the normal game UI permits it. Compare logs by side without assuming process-local IDs match; reset switches after inspection.
+
+## Duration observation result and scope
+
+**Milestone:** Human ran recipe and washing actions on a dedicated server. The duration mechanism was investigated as an exploratory possible reversible benefit, not as an approved FoodEffects mechanic.
+
+**Findings:** Client `%USERPROFILE%\Zomboid\console.txt:774-785` and server `%USERPROFILE%\Zomboid\Logs\2026-11-26_14-59_DebugLog-server.txt:1938-1952` show recipe adjustment calls and three calls for the same locally tracked washing instance on each side. All washing inputs and outputs were 100 in this case. Instance numbers are process-local and do not prove cross-side action identity. The probe does not identify call purpose or actual elapsed duration, and equal output cannot establish what a hypothetical multiplier would do. Raw logs stay private.
+
+**Changed files:** Reset `durationObservation` and `giveTestItems` to false; updated `TODO.md`, `CHANGELOG.md`, and this handoff.
+
+**Verified functionality:** The diagnostic wrapper loaded and logged the observed selected action calls on client and server in one dedicated session. It did not apply a speed effect.
+
+**Unverified assumptions:** Mod composition, exact call purpose, actual action duration, SP/hosted behavior, and production-safe interposition remain unverified. These observations do not establish a reversible gameplay surface.
+
+**Decisions required:** Timed-action acceleration is not approved or necessary to the existing food-effect direction. Continue such research only if the human sees it as useful; FE-007 remains active.
+
+**Next steps:** Focus on feasibility of the existing nutrition/cooking effect goals, their server authority, and safe reversible surfaces; do not assume timed-action acceleration is in scope.
+
+## Carrying capacity and endurance alternatives
+
+**Milestone:** Researchers independently inspected the previously discussed capacity and endurance targets; a reviewer checked the conclusions. No gameplay or diagnostic code changed.
+
+**Findings:** Local decompiled `zombie/characters/BodyDamage/BodyDamage.java:1779-1785` recalculates the shared effective carrying capacity, which `zombie/inventory/ItemContainer.java:2155` reads. The direct effective/base capacity setters in `IsoGameCharacter.java:3625` are not source-owned; repeated writes or baseline restoration can conflict with recalculation or other writers. `PlayerDamagePacket.java:32` carries effective capacity to clients. Altering item weight would introduce item persistence/transfer risks (`InventoryItem.java:1585`). No independent capacity modifier was found in this bounded search.
+
+`IsoPlayer.java:2983-3005,3074-3093` calculates endurance recovery directly into current endurance; `IsoGameCharacter.java:4345` computes recovery from game state rather than an identified source-owned mod multiplier. `Stats.java:35-57` saves/loads ordered stats, so direct top-ups alter a shared current value that can be saved; they do not demonstrate a reversible recovery-rate modifier. On the inspected multiplayer server path, `GameServer.java:2658` marks network players remote and `IsoPlayer.java:2163-2186` returns from the remote update branch before `OnPlayerUpdate` at line 2206, although it calls the endurance update there. This is static path evidence, not runtime proof or proof that no other event exists.
+
+**Changed files:** `TODO.md` and this handoff.
+
+**Verified functionality:** Static local Java/Lua inspection and independent review only; no runtime or Lua accessibility test.
+
+**Unverified assumptions:** Other possible APIs/hooks, complete serialization and packet lifecycles, runtime event scheduling and mod interactions. Neither target currently satisfies FE-007's reversible-surface gate.
+
+**Decisions required:** None for further research; selecting an effect or accepting compatibility/lifecycle trade-offs requires human approval.
+
+**Next steps:** Search targeted character-effect and calculation APIs for an independently owned mechanism; do not claim that sampling or a disposable setter test proves safe removal. Continue consumption-authority investigation in parallel when useful.
+
+## Capacity interoperability scope clarification
+
+**Milestone:** Human clarified that interoperability with other mods changing carrying capacity is not required, and that a disclaimer is acceptable. Food-mod compatibility remains important; Vanilla Foods Expanded was given as an example, not a verified dependency or tested target.
+
+**Findings:** FE-010 narrows the earlier research expectation of compatibility with competing capacity modifiers. It does not approve a specific carrying-capacity implementation or waive compatibility with vanilla recalculation, multiplayer authority, existing saves, reversible behavior, or safe removal. Therefore shared-scalar cleanup and disconnect/save risks remain relevant even with no other mods installed. FE-007 remains active.
+
+**Changed files:** `DECISIONS.md`, `DESIGN.md`, `TODO.md`, and this handoff.
+
+**Verified functionality:** Human decision documented; no code or runtime test.
+
+**Unverified assumptions:** Availability and behavior of the named food mod, carrying-capacity cleanup, and multiplayer synchronization remain unverified.
+
+**Decisions required:** A specific capacity implementation, balance, and presentation remain subject to human approval after feasibility review.
+
+**Next steps:** Reassess the guarded capacity probe and lifecycle against the narrowed interoperability requirement, and plan a representative food-mod test if the mod is available.
+
+## Paired salad snapshot test preparation
+
+**Milestone:** Prepared independently reviewed diagnostic snapshots for server/client comparison across ingredient additions and reconnect.
+
+**Findings:** When requested, server scans the requesting player's top-level inventory for one configured type, logs identity/nutrition, and sends a process-local sequence and player online ID only. Client scans its own top-level inventory after receiving the response and logs its own reading. Neither item identity nor nutrient values are sent from client to server. Missing, ambiguous or unavailable matches are reported instead of choosing one. The samples are not simultaneous; sequence resets on server restart, and unique type match does not imply all values are finite. Keep exactly one `Base.Salad` in main inventory and compare actual IDs and fields.
+
+**Changed files:** Diagnostic client/server Lua and `Config.lua`, `TODO.md`, `CHANGELOG.md`, and this handoff. Temporarily enabled `pairedMealSnapshot`, `evolvedRecipe`, and `giveTestItems` with the salad kit; other probes remain false.
+
+**Verified functionality:** Static inspection and independent review against installed vanilla inventory iteration and command APIs; no new runtime test. `git diff --check` required at handoff.
+
+**Unverified assumptions:** Response handling, exact item IDs across reconnect, client/server convergence, nil or nonfinite fields, and packet timing. This cannot establish packet origin, trust or ordering.
+
+**Decisions required:** None for diagnostic; FE-007 remains active.
+
+**Next steps:** Restart server/client, request kit, create salad, take one comparison after each ingredient and another after reconnect; examine logs and reset test switches.
+
+## Paired salad snapshot observation
+
+**Milestone:** Human ran paired snapshots after each salad ingredient and after reconnect on the dedicated server.
+
+**Findings:** Server log `%USERPROFILE%\Zomboid\Logs\2026-11-26_14-48_DebugLog-server.txt:1938,1941,1943` and client `%USERPROFILE%\Zomboid\console.txt:771,773,1395` show unique matches for the same salad ID in all three pairs. After tomato both report 7 calories, 1.75 carbohydrates, 0.1 lipids and approximately 0.65 proteins; after lettuce and after reconnect both report approximately 25 calories, 5.193333 carbohydrates, 0.28 lipids and 2.283333 proteins. Sampled hunger and uses also match in each pair. The snapshots are sequential, not simultaneous; this supports convergence for the observed case, not packet order, data provenance, security, or general replication. Raw logs remain outside Git.
+
+**Changed files:** Reset `evolvedRecipe`, `pairedMealSnapshot`, and `giveTestItems` to false in `Config.lua`; updated `TODO.md`, `CHANGELOG.md`, and this handoff.
+
+**Verified functionality:** One dedicated-server/client salad, two ingredient additions and one reconnect with matching sampled item identity and values. No server restart, multiple players, malformed data, or adversarial case tested.
+
+**Unverified assumptions:** Broader food and recipe synchronization, packet authorship/ordering, client input validation, and production authority remain open. FE-007 remains active.
+
+**Decisions required:** None.
+
+**Next steps:** Continue trust-boundary research and assess reversible effect surfaces; use the paired diagnostic for additional cases only if they answer a specific remaining question.
+
+## Capacity probe reassessment under FE-010
+
+**Milestone:** Reassessed the existing diagnostic against the narrowed capacity-mod compatibility requirement. No gameplay or diagnostic code changed.
+
+**Findings:** Local decompiled `tools/decompiled-all/zombie/characters/BodyDamage/BodyDamage.java:1779-1785` rebuilds effective capacity from base weight, weight modifier and vanilla moodle reductions, then multiplies by `IsoPlayer.getMaxWeightDelta()` and truncates to an integer. The scalar therefore participates in vanilla recalculation, rather than being a separate owned modifier. `IsoPlayer.java:601-607,662-668` assigns trait-specific scalar values, including 1.25 for Stout; replacing it with a fixed 1.25 is not necessarily a bonus and may equal the baseline. The earlier SP preflight observed 1.0 for one character, but that is not a guarantee for another character. Even without competing mods, restoring a captured baseline does not establish safe behavior across character lifecycle, save, removal, or vanilla trait changes. The existing 120-tick windows do not prove that `UpdateStrength` ran.
+
+**Changed files:** `TODO.md` and this handoff. All capacity diagnostic switches remain false on disk.
+
+**Verified functionality:** Static inspection of the diagnostic and locally decompiled code; `git diff --check` run. No setter, runtime, multiplayer, or removal test was performed in this milestone.
+
+**Unverified assumptions:** Setter exposure and scheduling, timing of effective-capacity recalculation, whether the scalar or effective value survives each save/load route, and server/client enforcement and synchronization. An interrupted or failed setter can leave the disposable character changed; a successful restoration call does not prove effective capacity has recalculated.
+
+**Decisions required:** None for this diagnostic. A production mechanic, its balance and presentation still require human approval; FE-007 remains active.
+
+**Next steps:** For a first focused SP experiment, use a disposable save and character, enable only `capacity` and `capacityMutation` in `Config.lua`, leave `capacityMutationServer` false, and restart the game. Inspect capacity first: proceed only if the logged baseline is finite and differs from the configured 1.25. Run the capacity mutation menu option once, remain in the world without saving, quitting or disconnecting until both delayed phases have logged, then inspect again and quit normally. Preserve the private console log, disable both switches and restart. Compare `mutation-before`, `mutation-applied`, `after-updates`, `restore-attempt`, `post-restore-updates`, and final inspection; missing phases, a rejected setter or no observed recalculation do not prove safety or failure of the mechanic. This experiment tests only one uninterrupted SP path; separate disposable tests and lifecycle analysis remain necessary before any production proposal.
+
+## Capacity test configuration prepared
+
+**Milestone:** Human requested that Codex configure diagnostic values before requesting tests; the working agreement now records this preference. Prepared the previously described disposable SP capacity test.
+
+**Findings:** `capacity` and `capacityMutation` are true on disk, the test scalar is 1.25, and `capacityMutationServer` and all other experiment switches are false. The game must restart to load these settings.
+
+**Changed files:** `AGENTS.md`, diagnostic `Config.lua`, and this handoff.
+
+**Verified functionality:** Configuration inspected on disk; no in-game test executed.
+
+**Unverified assumptions:** The test remains subject to the setter, scheduling, recalculation, and restoration limitations documented above.
+
+**Decisions required:** None for the diagnostic; gameplay approval remains outstanding.
+
+**Next steps:** Human runs the disposable SP procedure above. Codex will inspect the private log and reset the switches after the test.
+
+## Disposable single-player capacity probe observation
+
+**Milestone:** Human ran the guarded uninterrupted capacity mutation probe on a disposable SP character.
+
+**Findings:** Private `%USERPROFILE%\Zomboid\console.txt:1207-1214` records baseline scalar 1 and effective capacity 12. The setter call succeeded and read back 1.25; after 120 ticks the effective capacity was 15. The restoration call succeeded and read back scalar 1, while effective capacity still read 15 immediately; later inspections and the 120-tick post-restoration sample read scalar 1 and capacity 12. This supports delayed recalculation and restoration in this particular uninterrupted session. The earlier multiplayer inspection in the same log did not execute the mutation. Raw log remains outside Git.
+
+**Changed files:** Reset `capacity` and `capacityMutation` to false in `Config.lua`; updated `TODO.md`, `CHANGELOG.md`, and this handoff.
+
+**Verified functionality:** One SP setter exposure, scalar readback, later capacity change, restoration call and later baseline readback. No code change or new runtime test by Codex; `git diff --check` required at handoff.
+
+**Unverified assumptions:** Recalculation timing in general, trait changes, interruption, saving or loading during the mutation, restart, removal, multiplayer synchronization and enforcement. This observation does not establish safe lifecycle or a production effect.
+
+**Decisions required:** None for recording the test; FE-007 and human approval of a specific mechanic remain in force.
+
+**Next steps:** Restart the game to unload the enabled probes. Investigate and design a narrowly scoped lifecycle or dedicated-server test before drawing conclusions about production safety.
+
+## Dedicated-server capacity probe preparation
+
+**Milestone:** Prepared the existing guarded capacity probe for a disposable dedicated-server test, following the successful uninterrupted SP observation. Both server and client must load the prepared configuration.
+
+**Findings:** Static local `tools/decompiled-all/zombie/network/packets/character/PlayerDamagePacket.java:36,51` writes and applies effective capacity. The previously inspected server sync path has a 2,000 ms timer, but the probe's 120 ticks do not guarantee a packet during its mutation window. The client menu supplies an empty request; `FoodEffectsDiagnostics_Server.lua:120-129` checks the server switch and debug capability and selects the requesting player. The local inspection samples only client state, not server baseline. A matching baseline or an absent client-side change is inconclusive.
+
+**Changed files:** Enabled `capacity`, `capacityMutation`, and `capacityMutationServer` in diagnostic `Config.lua`; all other experiment switches remain false. Updated this handoff.
+
+**Verified functionality:** Static inspection of current diagnostic and packet code; the server mutation handler, capability guard and multiplayer probe have not been runtime-verified. No gameplay code changed.
+
+**Unverified assumptions:** Server/client load and authorization, server scalar baseline, server tick and recalculation timing, client packet arrival, restoration and all save, disconnect and removal paths. Server saves may happen during the experiment; a failed or interrupted probe can leave the disposable character altered.
+
+**Decisions required:** None for diagnostic testing; FE-007 remains active.
+
+**Next steps:** Restart the disposable dedicated server and client with the diagnostic mod enabled, connect with a debug-capable account and inspect local capacity. Request the server mutation once, remain connected long enough for the delayed restoration and post-restoration phases, inspect locally again, then quit normally. Preserve private client and server logs for comparison; reset switches after inspection. This first test does not deliberately interrupt or test saves, enforcement, or removal.
+
+## Dedicated-server capacity requests denied
+
+**Milestone:** Human tested the dedicated-server capacity control; both requests recorded in the logs were denied before mutation.
+
+**Findings:** Client `%USERPROFILE%\Zomboid\console.txt:775-780` shows two requests and inspections at effective capacity 12 and scalar 1. Server `%USERPROFILE%\Zomboid\Logs\2026-11-26_20-45_DebugLog-server.txt:1935-1936` records two `server-request-denied` entries, with no mutation phases. The original conditional combined capability-check errors, a false capability result and an unavailable mutation function under one denial message, so the logs cannot distinguish the cause. Vanilla `media/lua/server/ClientCommands.lua:794,1330` uses the same capability check, but that does not establish the test account's capability or prove this check completed successfully. Separately, the inspected `PlayerDamagePacket` carries effective weight rather than proving scalar replication, so client scalar 1 alone would not disprove a server-side mutation.
+
+**Changed files:** Reset the three capacity switches in `Config.lua`. The server diagnostic now logs a distinct denial reason without relaxing authorization; updated `TODO.md`, `CHANGELOG.md`, and this handoff.
+
+**Verified functionality:** Two requests reached the server and were denied; no server mutation is logged. The reason change has static inspection only and needs runtime verification. `git diff --check` required at handoff.
+
+**Unverified assumptions:** Exact denial cause, capability availability for the account, actual server mutation and client propagation. Private logs remain outside Git.
+
+**Decisions required:** None; no gameplay changes.
+
+**Next steps:** Restart server and client to unload the enabled probes. Before another mutation attempt, prepare the switches and use the improved denial reason to diagnose authorization; do not weaken the guard based on the present logs.
+
+## Server denial diagnostic retest prepared
+
+**Milestone:** Prepared the improved denial diagnostic for a single disposable dedicated-server request.
+
+**Findings:** The server and client must both restart to load the revised diagnostic and configuration. If the guard accepts the request, the existing probe will run the same temporary mutation, so the disposable-character and uninterrupted-session requirements still apply.
+
+**Changed files:** Enabled `capacity`, `capacityMutation`, and `capacityMutationServer` in `Config.lua`; unrelated switches remain false. Updated this handoff.
+
+**Verified functionality:** Configuration reviewed on disk; revised denial reasons remain untested in-game.
+
+**Unverified assumptions:** Whether the request will be denied or accepted and all multiplayer mutation and restoration behavior.
+
+**Decisions required:** None for the diagnostic; gameplay remains gated.
+
+**Next steps:** Restart server and client; request the server capacity probe once on a disposable character, remain connected for 30 seconds, inspect locally, then preserve logs for review. Reset switches after the test.
+
+## Server denial diagnostic observation
+
+**Milestone:** Human repeated the dedicated-server request with the improved denial diagnostic.
+
+**Findings:** Private server log `%USERPROFILE%\Zomboid\Logs\2026-11-26_20-54_DebugLog-server.txt:1935` reports `server-request-denied reason=capability-not-granted`. The capability check returned without error but did not grant the required debug capability; the setter was not called. Client log `%USERPROFILE%\Zomboid\console.txt:774-777` shows one request and capacity 12, delta 1 in the inspections. This diagnoses this attempt only, not account configuration or an accepted request.
+
+**Changed files:** Reset the three capacity switches in `Config.lua`; updated `TODO.md` and this handoff.
+
+**Verified functionality:** Diagnostic request and denial reason in one dedicated-server session; no multiplayer capacity mutation occurred.
+
+**Unverified assumptions:** How this account's role is configured, whether an authorized account succeeds, and server mutation, synchronization, or lifecycle behavior.
+
+**Decisions required:** None. The test control is diagnostic only; server-authoritative production effects remain the intended direction under FE-007.
+
+**Next steps:** Restart server and client to unload enabled probes. Investigate the server role configuration and prepare an authorized disposable test without weakening the capability guard.
+
+## Project status and next-step review
+
+**Milestone:** Reviewed the root project documentation against current findings and the human's request to focus on project goals. No gameplay or diagnostic code changed.
+
+**Findings:** FE-007 still blocks production effects until the consumption path, reversible stat surface and presentation route are verified and reviewed. Existing evidence includes one uninterrupted SP capacity change and restoration, one dedicated-server salad consumption observation, and limited synthetic persistence/expiry observations; none establishes the complete production lifecycle. The latest dedicated-server capacity requests were denied by the diagnostic's debug-role guard, not by a failed capacity setter. Investigating player permissions is not a gameplay requirement; a controlled server-side diagnostic trigger can be researched instead. Existing salad snapshot and SP capacity TODO wording was stale; timed-action acceleration is an unapproved candidate and should not distract from the agreed goals.
+
+**Changed files:** `TODO.md` now provides an ordered, goal-focused sequence and corrects stale task status; this handoff records the review.
+
+**Verified functionality:** Documentation reconciliation against recorded local evidence only. No runtime test or new source investigation was performed.
+
+**Unverified assumptions:** Server diagnostic trigger and multiplayer capacity lifecycle, trustworthy post-consumption processing, nutrition provenance, presentation, production persistence and third-party food support remain open. Existing logs are case-specific and do not establish broad compatibility.
+
+**Decisions required:** After feasibility evidence, the human must approve a concrete first effect, its balance and presentation, and any compatibility or validation trade-offs. FE-009's alternative offline mode remains unspecified and unapproved.
+
+**Next steps:** Research a safely bounded server-side capacity test without relying on a player's debug role; alongside that focus subsequent work on authoritative consumption and nutrition validation, then review the first-slice gate and present a concrete proposal. See the ordered `TODO.md` priorities for implementation and validation steps.
+
+## Repository knowledge-base working agreement
+
+**Milestone:** Human clarified that research and test knowledge must persist in repository documentation across agents and chats.
+
+**Findings:** The existing working agreement already identifies repository documentation as durable context; it did not explicitly spell out how read-only specialists' findings become durable. The primary agent is responsible for recording their reports, and agents permitted to edit may be assigned documentation ownership without concurrent edits to the same files. A focused linked Markdown file can be added when appropriate; private raw logs stay out of Git.
+
+**Changed files:** `AGENTS.md` and this handoff. No production or diagnostic implementation changed.
+
+**Verified functionality:** Documentation review only; no automated enforcement or runtime test. The agreement relies on agents following it and the primary agent reviewing the result.
+
+**Unverified assumptions:** Whether a future mechanical documentation check would be useful or capable of verifying research completeness; no harness has been added.
+
+**Decisions required:** None for this documentation workflow. Existing gameplay and architectural approval gates remain in force.
+
+**Next steps:** Follow the updated agreement during the capacity diagnostic research and subsequent milestones; review the relevant documentation against findings and open work before handoff.
+
+## Human-test relevance agreement
+
+**Milestone:** Human requested that manual tests stay focused on questions relevant to the mod and avoid unnecessary work on diagnostic-only mechanisms.
+
+**Findings:** The dedicated-server capacity diagnostic was blocked by its own debug-role guard; player debug permissions are not a requirement for the intended gameplay. Any alternative test should have an explicit connection to the unresolved server capacity or lifecycle question and describe its limits.
+
+**Changed files:** `AGENTS.md` and this handoff; no gameplay or diagnostic code changed.
+
+**Verified functionality:** Documentation update only; no runtime test.
+
+**Unverified assumptions:** A suitable server-side test trigger and production-safe capacity lifecycle remain unverified.
+
+**Decisions required:** None; existing gameplay approval gates remain active.
+
+**Next steps:** Use local evidence to assess useful server capacity research and propose a focused human test only if it answers a relevant unresolved question.
+
+## Server-owned capacity diagnostic research
+
+**Milestone:** Researched a possible dedicated-server capacity experiment that does not depend on player debug permissions. The research subtask is complete; a reviewed test implementation and runtime evidence remain open.
+
+**Findings:** Installed `media/lua/server/Foraging/forageServer.lua:455-470,502` demonstrates a server `OnTick` handler using `getOnlinePlayers()` and its Java list `size()`/`get()` methods; `media/lua/server/XpSystem/XpUpdate.lua:294-298` also accesses connected server players. A diagnostic-only, explicitly enabled server tick could wait for one specifically configured disposable test account, require an unambiguous match, and run at most once per server process. It would supply the server's player object and configured value directly, without a client command or player debug permission. This is a candidate, not implemented or runtime-proven; server restart could re-arm it while enabled, and identity alone does not prove the character is disposable.
+
+`tools/decompiled-all/zombie/network/NetworkPlayerManager.java:13,23-34` schedules damage synchronization using a 2,000 ms limit; `zombie/characters/NetworkPlayerAI.java:633-639` sends damage to a fully connected non-delayed-disconnect player, and `zombie/network/packets/character/PlayerDamagePacket.java:32-52` writes and applies effective max weight. A server-triggered test therefore needs client observations during the mutation as well as after restoration; the existing manual inspection after 30 seconds cannot establish what happened during the short window. Samples and server messages are asynchronous; a delayed or absent observed update is inconclusive. Client scalar equality does not establish server scalar state.
+
+The current `FoodEffectsDiagnostics/Feasibility.lua` probe is an uninterrupted tick-based experiment with best-effort restoration. It can save during the test, cannot guarantee cleanup across interruption, and does not prove a safe production lifecycle. A candidate implementation needs explicit single-shot gating, server-selected target, finite baseline/readback checks, phase-correlated client samples over a sufficient bounded interval, and a documented disposable-only procedure; it must not relax existing request authorization or create a production gameplay trigger. Neither an extended sampling window nor a successful test guarantees a packet or safe removal.
+
+**Changed files:** `AGENTS.md` records the human's request to report the active TODO item and completion status; `TODO.md` distinguishes completed source research from outstanding diagnostic implementation, review, and runtime testing; this handoff records the evidence.
+
+**Verified functionality:** Static inspection of installed vanilla Lua and local decompiled Java; existing SP capacity evidence remains limited to its earlier test. No game test, diagnostic mutation, or code implementation was performed in this milestone.
+
+**Unverified assumptions:** Automatic trigger scheduling and target identity, actual server/client timing, diagnostic observation and cleanup, save/restart and removal behavior, and production suitability. No new gameplay decision is approved.
+
+**Decisions required:** None for this research. A specific effect and compatibility/lifecycle trade-offs still require human approval under FE-007.
+
+**Next steps:** Implement and review a disabled-by-default, server-controlled diagnostic with bounded targeting and client observations before configuring any human test. Preserve the disposable-only limitation and independently assess interruption and cleanup risks.
+
+## Public-safe documentation agreement
+
+**Milestone:** Human requested portable, public-safe repository documentation for development across computers.
+
+**Findings:** Local user-profile paths in this document have been replaced with a neutral Windows environment-variable reference while preserving evidence filenames and line references. Prior Git history is unchanged. Private logs and local tools remain ignored; the tracked diagnostic extracts and any remote exposure of older raw logs still require review. A pattern scan cannot establish that every possible identifier or secret has been found.
+
+**Changed files:** `AGENTS.md` and this handoff; no gameplay or diagnostic code changed.
+
+**Verified functionality:** Documentation edits and targeted pattern checks only; no runtime test.
+
+**Unverified assumptions:** Complete anonymization of tracked extracts and exposure of older history on any remote.
+
+**Decisions required:** Review any history-rewriting or remote-cleanup plan with the human before carrying it out.
+
+**Next steps:** Continue the open privacy audit before sharing diagnostic extracts; review future Markdown changes for sensitive material before handoff.

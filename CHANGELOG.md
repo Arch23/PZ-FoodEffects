@@ -1,7 +1,27 @@
 # Changelog
 
+- Added a reason to denied diagnostic server-capacity requests so capability-check errors, absent capability, and an unavailable probe can be distinguished; runtime verification remains pending.
+
+- Recorded an uninterrupted disposable SP capacity probe: the scalar changed from 1 to 1.25, effective capacity subsequently changed from 12 to 15, and both returned to their baseline after restoration. Lifecycle and multiplayer safety remain unverified.
+
 ## Unreleased
 
+- Recorded a dedicated-server duration diagnostic: recipe and washing adjustment calls appeared on both sides, with three calls for the same locally tracked washing action per side.
+- Added a diagnostic-only duration adjustment observer for selected recipe and washing actions; no modifier is applied and runtime verification is pending.
+- Recorded matching independent server/client salad snapshots after two ingredient additions and reconnect in one dedicated-server test.
+- Added a diagnostic-only paired meal snapshot request: server and client independently inspect their inventories, with no client nutrition sent to the server; runtime validation remains pending.
+- Recorded a dedicated-server salad test: the kit was supplied, two ingredient additions and quarter consumption were observed, and the first addition replaced the bowl with a salad item.
+- Added an experimental evolved-recipe completion observer and configurable diagnostic test kits; prepared a bowl/tomato/lettuce test. Runtime verification remains pending.
+- Added a disabled-by-default configurable dedicated-server diagnostic test-item request for the requesting player; server chooses item and quantity. Runtime verification remains pending.
+- Recorded dedicated-server food observations for quarter consumption, shove interruption, and full removal; interruption consumed a small amount and removal classified as unknown.
+- Replaced the misleading diagnostic food-boundary marker with finite sampled-field classifications; this is experimental observation only and has not been runtime-tested.
+- Recorded a dedicated-server synthetic transport counter surviving server restart and a read-only client moodle registration-member exposure observation; native registration and rendering remain unverified.
+- Recorded a dedicated-server synthetic deadline expiring across a five-minute disconnect while server world time advanced; production effect behavior remains untested.
+- Recorded a human-run SP full-process restart test in which the synthetic persistence counter survived and incremented from 2 to 3.
+- Recorded a human-run SP menu/reload preflight: capacity reads were available and the synthetic counter survived returning to the main menu and reloading the character. Full process restart remains untested.
+- Added a disabled-by-default synthetic server world-time expiry probe for reconnect experiments; it changes no gameplay effects and remains untested in-game.
+- Recorded the approved world-time offline expiry default and the requested, feasibility-dependent configuration toggle; no gameplay implementation changed.
+- Added documented project-scoped Codex researcher, planner, developer, and reviewer roles with inherited model/permission settings and a modest direct-subagent concurrency cap. Updated the collaboration protocol; no gameplay implementation or decision changed.
 - Added an independently enabled server capacity diagnostic request guarded by the vanilla debug capability and bound to the requesting player; disconnect cleanup and runtime behavior remain unverified.
 - Recorded vanilla server debug-capability evidence and source-available custom-moodle rendering approaches; server disconnect cleanup and fallback presentation remain unresolved.
 - Documented native moodle icon mapping and registry reset behavior; strengthened the capacity probe to require target readback before claiming scalar ownership.

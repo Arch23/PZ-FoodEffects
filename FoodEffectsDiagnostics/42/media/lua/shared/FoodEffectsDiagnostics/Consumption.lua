@@ -39,6 +39,43 @@ local function logSnapshot(self, hookName, phase, invocation, state, parent, ext
     if ok then Diagnostics.log(message) else Diagnostics.log("snapshot-error hook=" .. hookName .. " phase=" .. phase) end
 end
 
+-- These are observations, not a calculation of consumption. Requiring every
+-- field and inventory membership prevents missing or removed items (including
+-- post-removal NaNs) from being reported as unchanged or reliably changed.
+local foodMethods = { "getCalories", "getCarbohydrates", "getLipids", "getProteins", "getHungerChange", "getCurrentUsesFloat" }
+local playerMethods = { "getCalories", "getCarbohydrates", "getLipids", "getProteins" }
+local function finite(value)
+    return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge
+end
+
+local function foodObservation(action)
+    local item = action and action.item
+    local player = action and action.character
+    if not item or not player or Diagnostics.isInInventory(player, item) ~= true then return nil end
+    local nutrition = Diagnostics.call(player, "getNutrition")
+    if not nutrition then return nil end
+    local values = {}
+    for _, method in ipairs(foodMethods) do
+        local value = Diagnostics.call(item, method)
+        if not finite(value) then return nil end
+        values[#values + 1] = value
+    end
+    for _, method in ipairs(playerMethods) do
+        local value = Diagnostics.call(nutrition, method)
+        if not finite(value) then return nil end
+        values[#values + 1] = value
+    end
+    return { item = item, player = player, values = values }
+end
+
+local function classifyFood(before, after)
+    if not before or not after or before.item ~= after.item or before.player ~= after.player then return "unknown" end
+    for i = 1, #before.values do
+        if before.values[i] ~= after.values[i] then return "observed_change" end
+    end
+    return "observed_unchanged"
+end
+
 local function installWrapper(actionClass, methodName, hookName)
     local original = actionClass and actionClass[methodName]
     if type(original) ~= "function" then
@@ -64,6 +101,12 @@ local function installWrapper(actionClass, methodName, hookName)
         local beforeAmount = Diagnostics.call(fluid, "getAmount")
         local beforeRatio = Diagnostics.call(fluid, "getFilledRatio")
         local beforeOk, beforeSnapshot = true, nil
+        local foodBoundary = hookName == "ISEatFoodAction.complete" or hookName == "ISEatFoodAction.eat"
+        local foodBefore = nil
+        if foodBoundary then
+            local captured, value = pcall(foodObservation, self)
+            if captured then foodBefore = value end
+        end
         if fluid then beforeOk, beforeSnapshot = pcall(Diagnostics.actionSnapshot, self) end
         if not fluid then logSnapshot(self, hookName, "before", invocation, state, parent, extra) end
         local result = original(self, ...)
@@ -74,11 +117,13 @@ local function installWrapper(actionClass, methodName, hookName)
             Diagnostics.log("hook=" .. hookName .. " phase=before-saved invocation=" .. invocation .. " action=" .. state.id .. extra .. " " .. (beforeOk and beforeSnapshot or "snapshot-error"))
         end
         if changed then logSnapshot(self, hookName, "after", invocation, state, parent, extra, tostring(result)) end
-        -- complete and eat are the two source-evidenced food mutation candidates.
-        -- serverStop only encloses eat during interruption and must not be treated
-        -- as a second candidate observation boundary.
-        if changed and (hookName == "ISEatFoodAction.complete" or hookName == "ISEatFoodAction.eat") then
-            Diagnostics.log("candidate=food-observation-boundary hook=" .. hookName .. " invocation=" .. invocation .. " action=" .. state.id .. " depth=" .. state.depth)
+        -- serverStop encloses eat; observations are not transaction IDs or proof
+        -- of consumption, nutrition contribution, or authority.
+        if foodBoundary then
+            local captured, foodAfter = pcall(foodObservation, self)
+            local classified, classification = pcall(classifyFood, foodBefore, captured and foodAfter or nil)
+            if not classified then classification = "unknown" end
+            Diagnostics.log("observation=food-boundary classification=" .. classification .. " hook=" .. hookName .. " invocation=" .. invocation .. " action=" .. state.id .. " depth=" .. state.depth .. " parent=" .. tostring(parent))
         end
         state.stack[state.depth] = nil
         state.depth = state.depth - 1
