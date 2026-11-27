@@ -27,5 +27,10 @@ FoodEffectsDiagnosticsConfig = {
     -- vanilla debug capability and always target the requesting player.
     capacityMutationServer = false,
     capacityMutationDelta = 1.25,
+    -- Automatic, one-attempt-per-server-process experiment; disposable server
+    -- and character only. Both flags above are also required. Set an exact
+    -- test account locally; never commit a real account name.
+    capacityAutoServer = false,
+    capacityAutoUsername = nil,
     moodle = false
 }

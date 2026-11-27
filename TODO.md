@@ -2,15 +2,19 @@
 
 ## Current priorities
 
-1. Prepare and review a controlled, disposable dedicated-server capacity diagnostic that runs server-side without depending on a player's debug role. The trigger and measurement approach have source support but are not implemented or runtime-verified. Test server recalculation and client effective capacity; a successful test alone cannot prove safe saves, removal, or production ownership.
+1. Investigate capacity lifecycle and production suitability after the successful uninterrupted dedicated-server diagnostic. Save/load, disconnect, restart, removal, and safe ownership remain unverified; one successful test cannot prove them.
 2. Establish and review server-authoritative post-consumption candidates for food and partial consumption, including zero-progress cancellation and removal; separately assess fluid and legacy-bottle paths. Trace nutrition provenance and validation trade-offs without assuming server-observed values are intrinsically trustworthy.
 3. Evaluate capacity lifecycle and alternatives, effect persistence/expiry, and an effect presentation route against FE-007. Identify the smallest feasible first effect and present its mechanics, scope, validation and compatibility trade-offs for human approval.
 4. After the gate is met and the human approves a concrete slice, implement and review it, then test SP, dedicated MP, existing saves, expiry, reconnection, restart, malformed data, removal and representative nutrition-bearing third-party foods. Expand toward dietary variety, Cooking and additional effects only through approved designs.
 
 ## Research
 
+- [x] Trace the inspected dedicated-server disconnect save ordering, player reload construction, and vanilla Strength-trait changes relevant to capacity. Full serialization, trait initialization and runtime lifecycle remain open.
+- [ ] Trace remaining capacity serialization and trait initialization paths; assess whether a disposable lifecycle test can distinguish saved scalar, reconstructed baseline, effective capacity and removal without assuming cleanup succeeded.
+- [x] Inspect the main player/character/moving-object save chain and scan installed class entries for direct scalar-field/setter name references; indirect persistence and post-load initialization remain unverified.
 - [x] Research a possible server-owned capacity diagnostic trigger and identify its measurement and cleanup limits; implementation, review and runtime testing remain open.
-- [ ] Implement and review the bounded, explicitly enabled disposable-server capacity experiment and paired client observations, then configure it before any human test.
+- [x] Implement and independently review the bounded disposable-server capacity experiment and paired client observations; one uninterrupted runtime test succeeded.
+- [x] Run the controlled dedicated-server capacity experiment on a disposable server and character; compare server mutation/restoration attempts with client capacity samples and reset the diagnostic configuration afterward. Interruption, saves, restart and removal remain untested.
 - [x] Correct and independently review the diagnostic food-boundary marker: classify sampled finite changes, unchanged samples, and unknown states without claiming consumption. Runtime validation remains open.
 - [x] Run a dedicated-server diagnostic comparison of ordinary partial food, shove interruption, and full removal; zero-progress cancellation remains unverified.
 - [ ] Extend runtime testing of the diagnostic item menu beyond the successful salad kit: reconnect, invalid configuration, and partial send failure remain unverified.
@@ -25,7 +29,7 @@
 - [ ] Investigate native moodle registration exposure, timing, level, rendering, icons, and dynamic tooltips; do not register an unverified type in the candidate.
 - [x] Inspect native MoodleType, per-character map, level computation and tooltip-key bodies; registry timing, icon resolution and extension viability remain open.
 - [x] Inspect native MoodleTextureSet and registry method bodies; exact initialization timing and third-party extension viability remain open.
-- [ ] Review the redacted `diagnostic-logs/` working copies before sharing and decide how to handle unsanitized logs already present in Git history. Raw copies remain locally in ignored `diagnostic-logs-private/`; do not commit them or additional unsanitized logs.
+- [ ] Investigate whether historical unsanitized logs were exposed on any remote and propose any cleanup for human approval. Raw and redacted logs remain local and ignored; removal from the current tree does not rewrite history.
 - [x] Establish local-install evidence for item nutrition, evolved recipes, tags, and eating action.
 - [x] Run the isolated `FoodEffectsDiagnostics` mod in SP and hosted MP and capture initial food and fluid observations. A standalone dedicated server and comprehensive coverage remain untested.
 - [ ] Identify and prove a server-authoritative post-consumption hook that covers food, partial food consumption, fluid drinking, and evolved meals in SP and dedicated MP. Do not use `EventEating` or these diagnostic wrappers as a production interception point without that evidence.
@@ -70,6 +74,7 @@
 
 ## Compatibility
 
+- [x] Remove tracked diagnostic log extracts from the current repository tree and ignore future diagnostic logs; documented findings remain. Historical/remote exposure remains a separate open question.
 - [ ] Test nutrition-bearing third-party foods and malformed/missing custom data.
 - [ ] Check availability and test a representative nutrition-bearing food mod, including the human's example Vanilla Foods Expanded if available; no compatibility is claimed before verification.
 - [ ] Document that mods altering carrying capacity may conflict if a capacity effect is adopted (FE-010).

@@ -1,5 +1,11 @@
 # Changelog
 
+- Removed diagnostic log extracts from the tracked repository and ignored future log files; existing Git history is unchanged.
+
+- Recorded an uninterrupted dedicated-server capacity diagnostic: server effective capacity and the client's observed effective capacity rose from 12 to 15 and returned to 12 after the server restored the scalar. Save and interruption behavior remain unverified.
+
+- Added an explicitly enabled, disposable-only server-owned capacity diagnostic with client sampling before and after a temporary scalar change. Runtime behavior and restoration across interruptions remain unverified.
+
 - Added a reason to denied diagnostic server-capacity requests so capability-check errors, absent capability, and an unavailable probe can be distinguished; runtime verification remains pending.
 
 - Recorded an uninterrupted disposable SP capacity probe: the scalar changed from 1 to 1.25, effective capacity subsequently changed from 12 to 15, and both returned to their baseline after restoration. Lifecycle and multiplayer safety remain unverified.

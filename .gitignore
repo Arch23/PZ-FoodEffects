@@ -1,4 +1,5 @@
 # Raw Project Zomboid logs can contain identifying and network information.
+diagnostic-logs/
 diagnostic-logs-private/
 
 # Local Java inspection tools are not part of the mod.

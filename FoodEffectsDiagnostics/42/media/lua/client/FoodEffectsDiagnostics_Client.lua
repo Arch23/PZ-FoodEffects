@@ -59,6 +59,43 @@ local function diagnosticMenu(playerNum, context, worldobjects, test)
 end
 Events.OnFillWorldObjectContextMenu.Add(diagnosticMenu)
 
+-- Observe the local player's effective capacity while the server-owned
+-- diagnostic runs. Sampling does not send any data or set any stats.
+if FoodEffectsDiagnosticsConfig.capacity and FoodEffectsDiagnosticsConfig.capacityMutation and FoodEffectsDiagnosticsConfig.capacityAutoServer and isClient() then
+    local observation = nil
+    local function onCapacityAutoObserve(module, command, args)
+        if module ~= "FoodEffectsDiagnostics" or command ~= "capacityAutoObserve" or type(args) ~= "table" then return end
+        local id = args.playerOnlineId
+        if type(id) ~= "number" or id ~= id or id < 0 or id == math.huge then return end
+        local found, matches = nil, 0
+        for i = 0, getNumActivePlayers() - 1 do
+            local player = getSpecificPlayer(i)
+            if player and FoodEffectsDiagnostics.call(player, "getOnlineID") == id then found, matches = player, matches + 1 end
+        end
+        if matches ~= 1 then
+            FoodEffectsDiagnostics.log("experiment=capacity-auto phase=client-observe-skip reason=player-unavailable-or-ambiguous")
+            return
+        end
+        local now = getTimestampMs()
+        observation = { player = found, started = now, nextSample = now, count = 0 }
+        FoodEffectsDiagnostics.log("experiment=capacity-auto phase=client-observe-start")
+    end
+    local function sampleCapacityAuto()
+        if not observation then return end
+        local now = getTimestampMs()
+        if now < observation.nextSample then return end
+        local o = observation
+        o.count = o.count + 1
+        FoodEffectsDiagnostics.log("experiment=capacity-auto phase=client-sample sample=" .. tostring(o.count) ..
+            " elapsedMs=" .. tostring(now - o.started) ..
+            " maxWeight=" .. tostring(FoodEffectsDiagnostics.call(o.player, "getMaxWeight")) ..
+            " maxWeightDelta=" .. tostring(FoodEffectsDiagnostics.call(o.player, "getMaxWeightDelta")))
+        if now - o.started >= 36000 then observation = nil else o.nextSample = now + 1000 end
+    end
+    Events.OnServerCommand.Add(onCapacityAutoObserve)
+    Events.OnTick.Add(sampleCapacityAuto)
+end
+
 -- Sample locally only after the server responds. Values and item selection
 -- are never sent to the server; the sequence only relates the two log lines.
 if FoodEffectsDiagnosticsConfig.pairedMealSnapshot and isClient() then

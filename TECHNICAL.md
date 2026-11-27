@@ -1431,3 +1431,75 @@ The current `FoodEffectsDiagnostics/Feasibility.lua` probe is an uninterrupted t
 **Decisions required:** Review any history-rewriting or remote-cleanup plan with the human before carrying it out.
 
 **Next steps:** Continue the open privacy audit before sharing diagnostic extracts; review future Markdown changes for sensitive material before handoff.
+
+## Server-owned capacity diagnostic prepared
+
+**Milestone:** Implemented and independently reviewed an explicitly configured disposable-server capacity diagnostic; no in-game test has yet run.
+
+**Findings:** A server-side tick selects one exact configured account, waits for a stable match, starts a five-second client observation window, attempts a configured scalar change, holds for 15 seconds, then attempts restoration and samples again. It runs at most once per server process, accepts no client mutation request or values, and rearms on restart while enabled. Client samples are independent and do not prove packet delivery or precise ordering. The reviewer identified cleanup on a setter error after a confirmed mutation, misleading restore labels, and lack of a baseline window; the revised candidate addresses the first two and provides a baseline window, although message delay can still make it inconclusive. The reviewer found no remaining blocking static defect for a disposable-only test.
+
+**Changed files:** Diagnostic `Config.lua`, client Lua, new server `FoodEffectsDiagnostics_CapacityAuto.lua`, `TODO.md`, `CHANGELOG.md`, `AGENTS.md`, and this handoff. The three required diagnostic switches and previously observed test account are temporarily configured locally; the account must be reset before committing. The human also requested removing tracked log extracts at the next commit; this is recorded in `TODO.md` and `AGENTS.md` and does not rewrite existing history.
+
+**Verified functionality:** Source-based implementation and independent static review; no Lua compiler or in-game test was available. `git diff --check` is required at handoff. No gameplay implementation or permission change.
+
+**Unverified assumptions:** Runtime module loading, timer and message delivery, server/client capacity observations, and restoration. Account identity does not establish that a character is disposable; shutdown, saves, disconnected players, setter errors or unavailable readback can leave state altered. Successful sampling will not establish safe production lifecycle or enforceability.
+
+**Decisions required:** None for this diagnostic. FE-007 and approval of gameplay design remain in force.
+
+**Next steps:** Restart the disposable dedicated server and client, connect the previously used disposable test account with a disposable character, remain connected for at least one minute, and preserve private logs. Review both logs, then reset the switches and clear the account before any subsequent restart or commit.
+
+## Dedicated-server capacity diagnostic observation
+
+**Milestone:** Human completed one uninterrupted disposable dedicated-server capacity test, including independent client sampling.
+
+**Findings:** Private server diagnostic log `2026-11-27_00-24_DebugLog-server.txt:1936-1944` records scalar 1 and effective capacity 12 before mutation, scalar 1.25 immediately after the setter, and effective capacity 15 before restoration. The restoration call reported success with scalar readback 1; a later sample reported effective capacity 12 and scalar 1. Private client `console.txt:776-798` records effective capacity 12 before, 15 during, and 12 afterward; the client's scalar remained 1. Samples are asynchronous; this supports propagation in this run without proving exact packet order or enforcement. Neither debug permission nor a client mutation request was used.
+
+**Changed files:** Reset all three capacity diagnostic switches to false and cleared the configured account in `Config.lua`; updated `TODO.md`, `CHANGELOG.md`, and this handoff. The new diagnostic implementation remains in the working tree.
+
+**Verified functionality:** One uninterrupted dedicated-server setter, recalculation, restoration attempt with baseline readback, later capacity restoration, and client effective-capacity observations. No gameplay effect, additional character or lifecycle test was performed.
+
+**Unverified assumptions:** Save/load, disconnect or crash during an effect, server restart, mod removal/reinstallation, enforcement, other characters and production-safe ownership. The test alone does not satisfy FE-007.
+
+**Decisions required:** None to record the observation; selecting gameplay effects and trade-offs still requires human approval.
+
+**Next steps:** Restart server and client to unload the test configuration. Research capacity lifecycle and safe removal using local evidence before deciding whether another human test is needed; continue server-authoritative consumption research.
+
+## Capacity lifecycle source investigation
+
+**Milestone:** Two read-only researchers investigated capacity persistence, trait changes and disconnect ordering following the uninterrupted dedicated-server test. Production lifecycle safety remains unverified.
+
+**Findings:** In local decompiled `zombie/network/GameServer.java:2854-2858`, disconnect initiates `serverUpdateNetworkCharacter` before player removal. `zombie/savefile/ServerPlayerDB.java:122-123,346-363` constructs the save record and calls `player.save` while constructing it, before the record is queued. `zombie/network/NetworkPlayerManager.java:23-29` also performs periodic player saves. Consequently a cleanup on a later tick cannot change an already-created snapshot; this does not establish that the capacity scalar is in that snapshot.
+
+On the inspected reconnect path, `ServerPlayerDB.java:242-245` constructs a new player and then loads saved bytes. In the inspected partial decompilation, `zombie/characters/IsoPlayer.java:385,600-607,661-668,7259-7264` initializes and exposes the scalar, while saved traits are loaded later through `IsoGameCharacter.java:4938,16091-16092` and `CharacterTraits.java:71-97`. No direct scalar serialization was found in the inspected player and character save/load bodies, but the partial decompilation and component audit do not establish that no such path exists or what final scalar is reconstructed. Separately, installed `media/lua/server/XpSystem/XpUpdate.lua:196-216,389` can change Strength-related traits at level changes; the inspected branch does not call the scalar setter. `IsoGameCharacter.java:4408-4439` also calculates the weight modifier from Strength level, so effective capacity can change even if the scalar does not. Neither a captured baseline nor reconstruction from current traits should be assumed correct across that lifecycle.
+
+`zombie/characters/BodyDamage/BodyDamage.java:1779-1785,1815-1824,1849` calculates effective capacity but skips the update for living multiplayer clients and god-mode characters, so restoring a scalar does not imply immediate effective-capacity recalculation everywhere. These are static findings, not proof of live cleanup, save corruption or permanent mutation.
+
+**Changed files:** `TODO.md` and this handoff; no gameplay or diagnostic code changed.
+
+**Verified functionality:** Local source and partial decompiled Java inspection by two researchers and an independent reviewer; no new runtime test. The reviewer confirmed the observed save ordering and cautioned that it proves neither scalar persistence nor a successful database write. Previous uninterrupted SP and dedicated-server observations remain limited to those sessions.
+
+**Unverified assumptions:** Complete scalar serialization and initialization, trait-derived baselines on reconnect, save and crash behavior during an effect, mod removal, and any cleanup or source-owned modifier facility. The decompilation is incomplete.
+
+**Decisions required:** None for continued research. FE-007 and human approval for a production mechanic and trade-offs remain active.
+
+**Next steps:** Trace remaining serialization and trait initialization; design a narrowly relevant disposable lifecycle test only when its expected observations can distinguish competing explanations.
+
+## Capacity save/load and trait initialization follow-up
+
+**Milestone:** Continued read-only local save/load research and independently reviewed the scope of the resulting evidence. No in-game test was performed.
+
+**Findings:** Inspected `tools/decompiled-all/zombie/characters/IsoPlayer.java:1226,1378`, `zombie/characters/IsoGameCharacter.java:4921,5044`, and `zombie/iso/IsoMovingObject.java:680,700`: their main load/save bodies do not directly serialize the scalar, effective capacity or base capacity. They delegate to components, so this is not a complete serialization proof. `IsoMovingObject` also saves an optional Lua table; persistence of mod data would not prove that the native scalar persisted.
+
+The server reload path at `zombie/savefile/ServerPlayerDB.java:242-245` constructs the player before loading saved bytes. `zombie/characters/traits/CharacterTraits.java:62-66,72-109` initializes traits false and subsequently updates trait collections without directly setting the scalar. The constructor triggers `OnCreateLivingCharacter` before checking traits (`IsoPlayer.java:645,661-668`); later initialization and listeners remain relevant. The inspected new-character paths `zombie/network/packets/character/CreatePlayerPacket.java:262-268` and `zombie/iso/IsoWorld.java:2228-2237` also apply traits after construction. These observations do not establish the final scalar on creation or reload.
+
+A read-only scan of every `.class` entry in the installed `projectzomboid.jar` for the exact case-sensitive byte strings `maxWeightDelta` or `setMaxWeightDelta` returned only `zombie/characters/IsoPlayer.class`. This supports a narrow conclusion about direct named references, not absence of persistence: `getMaxWeightDelta` is a different name and is used by `BodyDamage`, and reflection, native code, Lua/mod code, generated names, or indirect side effects may exist. The independent reviewer confirmed these limits.
+
+**Changed files:** `TODO.md` and this handoff; no implementation or diagnostic settings changed.
+
+**Verified functionality:** Local source inspection and installed JAR byte-string scan, with independent review. No runtime, reload, save-byte or removal experiment.
+
+**Unverified assumptions:** Complete component save/load behavior, runtime scalar and traits after reload, indirect writes, and mod-removal behavior. The static evidence suggests a focused test could be useful but does not prove whether a value is persisted or reconstructed.
+
+**Decisions required:** None for research. Gameplay implementation remains gated by FE-007 and human approval.
+
+**Next steps:** Before asking for a human test, design and review a disposable control and mutation comparison with server-side traits, scalar and effective capacity sampled before and after a confirmed save and reload. A changed value that survives establishes only observed survival; a reset establishes only observed reset. Distinguishing serialized data from later reconstruction would require further load-boundary or save-byte evidence. Keep automatic mutation from rearming and never treat an unconfirmed save as evidence.
