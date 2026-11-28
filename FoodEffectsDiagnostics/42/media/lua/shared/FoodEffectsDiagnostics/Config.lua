@@ -7,6 +7,8 @@ FoodEffectsDiagnosticsConfig = {
     pairedMealType = "Base.Salad",
     persistenceTransport = false,
     offlineExpiry = false,
+    -- Disposable presentation test. Enable on the client and MP server.
+    syntheticPresentation = false,
     -- Disposable test servers only. Server chooses these values and ignores
     -- any item type or quantity sent by the client.
     giveTestItems = false,
@@ -32,5 +34,9 @@ FoodEffectsDiagnosticsConfig = {
     -- test account locally; never commit a real account name.
     capacityAutoServer = false,
     capacityAutoUsername = nil,
+    -- Independent server-only baseline observer. Set an exact test account
+    -- locally. This observer skips if a server mutation probe is enabled.
+    capacityReadOnlyServer = false,
+    capacityReadOnlyUsername = nil,
     moodle = false
 }

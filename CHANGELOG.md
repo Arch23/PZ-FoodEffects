@@ -12,6 +12,9 @@
 
 ## Unreleased
 
+- Added a disabled-by-default diagnostic-only synthetic countdown panel with SP and targeted MP paths; mock checks and static review passed, while in-game display and lifecycle remain unverified.
+- Recorded one combined dedicated-server diagnostic: quarter-cola fluid and nutrient observations, a synthetic deadline across restart, positive-progress food cancellations, and read-only capacity samples. The non-default capacity comparison and zero-progress cancellation remain open.
+- Added a disabled-by-default dedicated-server read-only capacity and Strength observer. It refuses to run alongside enabled server mutation probes and sampled successfully in one disposable dedicated-server session.
 - Recorded a dedicated-server duration diagnostic: recipe and washing adjustment calls appeared on both sides, with three calls for the same locally tracked washing action per side.
 - Added a diagnostic-only duration adjustment observer for selected recipe and washing actions; no modifier is applied and runtime verification is pending.
 - Recorded matching independent server/client salad snapshots after two ingredient additions and reconnect in one dedicated-server test.

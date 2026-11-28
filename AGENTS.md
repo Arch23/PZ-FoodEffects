@@ -54,10 +54,15 @@ project memory.
   blockers, recommendations, and decisions requiring human approval.
 - Project roles live in `.codex/agents/`. They inherit the initiating session's
   permissions and must not delegate further work. The project caps direct
-  concurrent subagents at three. Prefer a lighter, lower-cost available model
-  for bounded tasks that do not require heavy reasoning; use a more capable model
-  when the task's complexity or review risk warrants it. Model selection must
-  respect the initiating session's available models and instructions.
+  concurrent subagents at three. When the session's subagent tool permits model
+  overrides, explicitly select an available lighter, lower-cost model and an
+  appropriate reasoning effort for bounded tasks that do not require heavy
+  reasoning. Select a more capable model or higher effort when complexity or
+  review risk warrants it. If choosing a model requires a fresh context, include
+  the task, relevant repository instructions, evidence and constraints in the
+  delegation. If an override is unavailable or prohibited, inherit the parent
+  configuration and explain that limitation to the human. Respect the initiating
+  session's available models and higher-priority instructions.
 - Experimental instrumentation stays in `FoodEffectsDiagnostics`; production
   gameplay remains behind the existing approval gates. Keep raw private logs
   out of Git and review redacted diagnostic extracts before committing them.

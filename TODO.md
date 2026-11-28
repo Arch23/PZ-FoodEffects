@@ -10,7 +10,9 @@
 ## Research
 
 - [x] Trace the inspected dedicated-server disconnect save ordering, player reload construction, and vanilla Strength-trait changes relevant to capacity. Full serialization, trait initialization and runtime lifecycle remain open.
-- [ ] Trace remaining capacity serialization and trait initialization paths; assess whether a disposable lifecycle test can distinguish saved scalar, reconstructed baseline, effective capacity and removal without assuming cleanup succeeded.
+- [ ] Trace remaining capacity serialization and trait initialization paths; assess whether a disposable lifecycle test can distinguish saved scalar, reconstructed baseline, effective capacity and removal without assuming cleanup succeeded. No atomic Lua save boundary is established; review a read-only traited control and investigate debugger tooling first on a throwaway JVM (see `TECHNICAL.md`).
+- [x] Runtime-verify the read-only server capacity observer and run the combined disposable dedicated-server session; inspect the available logs and reset temporary configuration. The observer sampled before and after restart, but the pre-restart sample preceded the trait change and the scalar was default, so a matched non-default comparison remains open.
+- [x] Observe one dedicated-server quarter-cola drink and synthetic deadline across an orderly server restart. Other fluids, true zero-progress cancellation, production expiry and authoritative consumption remain unverified.
 - [x] Inspect the main player/character/moving-object save chain and scan installed class entries for direct scalar-field/setter name references; indirect persistence and post-load initialization remain unverified.
 - [x] Research a possible server-owned capacity diagnostic trigger and identify its measurement and cleanup limits; implementation, review and runtime testing remain open.
 - [x] Implement and independently review the bounded disposable-server capacity experiment and paired client observations; one uninterrupted runtime test succeeded.
@@ -33,12 +35,12 @@
 - [x] Establish local-install evidence for item nutrition, evolved recipes, tags, and eating action.
 - [x] Run the isolated `FoodEffectsDiagnostics` mod in SP and hosted MP and capture initial food and fluid observations. A standalone dedicated server and comprehensive coverage remain untested.
 - [ ] Identify and prove a server-authoritative post-consumption hook that covers food, partial food consumption, fluid drinking, and evolved meals in SP and dedicated MP. Do not use `EventEating` or these diagnostic wrappers as a production interception point without that evidence.
-- [ ] Trace legitimate evolved-meal item-state synchronization and server-side nutrition provenance; design a focused disposable-server diagnostic. `ItemStatsPacket` can apply client-supplied nutrient fields to resolved items in the inspected path, but exploitability and all validation remain unverified.
+- [ ] Trace legitimate evolved-meal item-state synchronization and server-side nutrition provenance; design a focused disposable-server diagnostic. A legacy client-send branch is statically possible but no normal installed vanilla recipe reaching it was found; modern `ScoopIceCream` has server-side send sites and writes output ingredient counts after initial transfer. Identify a supported send/apply observation before attributing provenance. Exploitability and complete validation remain unverified (see `TECHNICAL.md`).
 - [x] Design and review read-only server/client snapshots for the same meal IDs after additions and reconnect; test convergence without treating client nutrition as authority or claiming packet ordering/security. Broader foods and provenance remain unverified.
 - [x] Run the paired-salad snapshot test after each ingredient and reconnect; independent server/client IDs and sampled fields matched in this case. Packet ordering and authority remain unverified.
 - [x] Run the dedicated-server salad diagnostic: request the kit, add tomato and lettuce, and eat a portion. Packet provenance and broader recipes remain unverified.
-- [ ] Search for a source-owned, reversible temporary-effect facility. Direct XP multiplier use shares a saved per-perk entry with vanilla books and is not an independently owned modifier.
-- [ ] Investigate whether a source-owned per-character calculation hook exists for capacity or endurance; direct effective/base capacity and endurance writes lack demonstrated ownership and safe cleanup. Do not assume `OnPlayerUpdate` runs for remote dedicated-server players.
+- [ ] Search for a source-owned, reversible temporary-effect facility. Direct XP multiplier use shares a saved per-perk entry with vanilla books; inspected capacity, trait-definition and endurance-recovery paths expose no such owned modifier. Other paths remain unverified (see `TECHNICAL.md`).
+- [ ] Investigate whether a source-owned per-character calculation hook exists for capacity or endurance; direct effective/base capacity and endurance writes lack demonstrated ownership and safe cleanup. The inspected remote-player update path returns before `OnPlayerUpdate`; this does not rule out other hooks (see `TECHNICAL.md`).
 - [ ] Resume timed-action duration interposition research only if the human prioritizes that unapproved gameplay candidate; it is not a source-owned modifier API.
 - [x] Design and independently review a diagnostic duration-call observer for selected actions; runtime behavior and mod load-order effects remain unverified.
 - [x] Run duration observation for salad additions and a washing action on a disposable dedicated server and client. Call purpose, elapsed duration and cross-side identity were not logged; further work depends on gameplay direction.
@@ -53,7 +55,7 @@
 - [x] Trace server disconnect save/removal ordering and prepare a separately enabled capability-guarded server probe; runtime authorization and cleanup behavior remain unverified.
 - [ ] Evaluate optional custom-moodle dependencies for installed build, compatibility, maintenance and license; human is open to a dependency but has not selected one.
 - [x] Review source-available Build 42 custom-moodle project descriptions; both identified projects describe replacement rendering, while compatibility and code-level details remain unverified.
-- [ ] Test whether custom moodle types can be registered; otherwise assess a minimal client UI/notification route with dynamic remaining duration.
+- [ ] Runtime-verify the independently reviewed synthetic one-shot countdown panel in SP and dedicated MP: display, player targeting, local clock estimate, expiry and cleanup. Same-record reconnect restoration and authoritative expiry require a later server-held design; a production presentation choice still requires approval.
 - [ ] Verify evolved-recipe nutrient aggregation and preservation of ingredient provenance.
 
 ## Architecture
